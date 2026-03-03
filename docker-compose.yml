@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  brayserver-dashboard:
+    image: ghcr.io/Ruzzler/brayserver-dashboard:latest
+    container_name: BrayServer-Dashboard
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./appdata/.env:/usr/src/app/.env
+    # The image is pulled from your private GitHub registry
+    # Ensure you are logged into ghcr.io on Unraid before running `docker-compose up -d`
