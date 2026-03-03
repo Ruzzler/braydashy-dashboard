@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import * as Icons from 'lucide-react';
 import { SettingsModal } from './SettingsModal';
+import { formatIconName } from '../lib/utils';
 
 const SUBTITLES = [
     "Home Server & App Dashboard",
@@ -70,7 +71,8 @@ export function Header({ config, onSaveConfig = () => { } }: { config?: any, onS
     }, []);
 
     const layout = config?.headerLayout || 'classic';
-    const IconComp = config?.serverIcon ? ((Icons as any)[config.serverIcon] || Icons.Server) : Icons.Server;
+    const iconKey = config?.serverIcon ? formatIconName(config.serverIcon) : 'Server';
+    const IconComp = (Icons as any)[iconKey] || Icons.Server;
 
     const renderServerIdentity = (center = false) => (
         <div className={`flex flex-col ${center ? 'items-center text-center' : 'items-start'}`}>

@@ -3,6 +3,7 @@ import { renderToString } from 'react-dom/server';
 import { BackgroundOrbs } from './components/BackgroundOrbs';
 import { Header } from './components/Header';
 import * as Icons from 'lucide-react';
+import { formatIconName } from './lib/utils';
 
 interface AppItem {
   id: string;
@@ -66,7 +67,7 @@ function AppCard({ app }: { app: AppItem }) {
     );
   } else {
     // @ts-ignore dynamic icon fetch
-    const IconComp = Icons[app.icon] || Icons.Box;
+    const IconComp = Icons[formatIconName(app.icon)] || Icons.Box;
     iconElement = <IconComp className="w-8 h-8 text-muted-foreground transition-transform duration-300 group-hover:scale-110 group-hover:text-foreground" />;
   }
 
@@ -119,7 +120,8 @@ function App() {
       document.title = config.serverName || "BrayServer";
 
       try {
-        const IconComp = config.serverIcon ? ((Icons as any)[config.serverIcon] || Icons.Server) : Icons.Server;
+        const iconKey = config.serverIcon ? formatIconName(config.serverIcon) : 'Server';
+        const IconComp = (Icons as any)[iconKey] || Icons.Server;
         // Render the lucide SVG element to a string and encode it for a Data URI
         const svgString = renderToString(<IconComp size={32} color="white" />);
         const encodedSvg = encodeURIComponent(svgString);
