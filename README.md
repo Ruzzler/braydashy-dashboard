@@ -3,6 +3,8 @@
   <p>A sophisticated, responsive, and highly configurable React dashboard for server environments.</p>
 </div>
 
+[![Live Demo](https://img.shields.io/badge/Live-Interactive_Demo-success?style=for-the-badge)](https://ruzzler.github.io/brayserver-dashboard/)
+
 ![BrayDashy Screenshot](dashboard-screenshot.png)
 
 ## Overview
