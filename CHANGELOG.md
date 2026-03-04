@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0-beta.1] - 2026-03-04
+
+### Added
+- **Configurable "Glance" Widgets Row**: A sleek new horizontal-scrolling widgets area directly on the dashboard supporting RSS feeds (via proxy), dynamic Clock cards, and Server System Stats (CPU/RAM/Disk via radial gauges).
+- **Expanded Application Integrations**: Added support for Pi-hole, Proxmox Virtual Environment (PVE), and qBittorrent live data tracking directly on app cards.
+- **Advanced Network Latency Tracker**: App cards now ping backend services locally and display microsecond latency (e.g. `Online (14ms)`) to verify real-time responsiveness.
+- **Workspace IFrame Viewer**: Added global and per-app settings to instantly open web interfaces inside a floating dashboard overlay rather than navigating away to a new tab.
+
 ## [0.4.0-beta.1] - 2026-03-04
 
 ### Added

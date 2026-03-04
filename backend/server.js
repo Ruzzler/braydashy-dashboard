@@ -5,6 +5,10 @@ const axios = require('axios');
 const net = require('net');
 const si = require('systeminformation');
 const fs = require('fs');
+const https = require('https');
+
+// For internal connections to self-signed tools like Proxmox
+const insecureAgent = new https.Agent({ rejectUnauthorized: false });
 
 const app = express();
 const PORT = process.env.PORT || 3050; // Changed from 3000 to avoid conflicts
@@ -342,6 +346,137 @@ app.get('/api/speedtest/status', async (req, res) => {
                 }
             } catch (e) {
                 console.error('Speedtest API error:', e.message);
+            }
+        }
+        res.json({ online: true, latency: pingResult.latency, stats: stats.length > 0 ? stats : null });
+    } catch (error) {
+        const fb = await checkServiceReachable(url);
+        res.json({ online: fb.online, latency: fb.latency });
+    }
+});
+
+// Specific route for Pi-hole (LIVE API)
+app.get('/api/pihole/status', async (req, res) => {
+    const config = readConfig();
+    const appInfo = config.apps.find(a => a.id === 'pihole');
+    if (!appInfo) return res.json({ online: false });
+
+    const url = appInfo.url;
+    const apiKey = config.apiKeys.PIHOLE_API_KEY;
+
+    try {
+        const pingResult = await checkServiceReachable(url);
+        if (!pingResult.online) return res.json({ online: false });
+
+        let stats = [];
+        if (apiKey) {
+            try {
+                const sumRes = await axios.get(`${url}/admin/api.php?summaryRaw&auth=${apiKey}`, { timeout: 3000 });
+                if (sumRes.data) {
+                    stats.push({ id: 'ads_blocked', label: 'Blocked', value: sumRes.data.ads_blocked_today?.toString() || '0', color: 'var(--success)' });
+                    if (sumRes.data.ads_percentage_today) {
+                        stats.push({ id: 'ads_percentage', label: 'Ratio', value: sumRes.data.ads_percentage_today.toFixed(1) + '%', color: 'var(--primary)' });
+                    }
+                }
+            } catch (e) {
+                console.error('Pi-hole API error:', e.message);
+            }
+        }
+        res.json({ online: true, latency: pingResult.latency, stats: stats.length > 0 ? stats : null });
+    } catch (error) {
+        const fb = await checkServiceReachable(url);
+        res.json({ online: fb.online, latency: fb.latency });
+    }
+});
+
+// Specific route for qBittorrent (LIVE API)
+app.get('/api/qbittorrent/status', async (req, res) => {
+    const config = readConfig();
+    const appInfo = config.apps.find(a => a.id === 'qbittorrent');
+    if (!appInfo) return res.json({ online: false });
+
+    const url = appInfo.url;
+    const creds = config.apiKeys.QBITTORRENT_CREDS;
+
+    try {
+        const pingResult = await checkServiceReachable(url);
+        if (!pingResult.online) return res.json({ online: false });
+
+        let stats = [];
+        if (creds && creds.includes(':')) {
+            const [username, password] = creds.split(':');
+            try {
+                const loginUrl = new URL(url);
+                const baseUrl = `${loginUrl.protocol}//${loginUrl.host}`;
+
+                const loginRes = await axios.post(`${baseUrl}/api/v2/auth/login`,
+                    `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`,
+                    { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, timeout: 3000 }
+                );
+
+                const cookies = loginRes.headers['set-cookie'];
+                if (cookies) {
+                    const syncRes = await axios.get(`${baseUrl}/api/v2/sync/maindata`, {
+                        headers: { 'Cookie': cookies.join('; ') },
+                        timeout: 3000
+                    });
+
+                    if (syncRes.data && syncRes.data.server_state) {
+                        const dlMsg = (syncRes.data.server_state.dl_info_speed / 1024 / 1024).toFixed(1) + ' MB/s';
+                        const ulMsg = (syncRes.data.server_state.up_info_speed / 1024 / 1024).toFixed(1) + ' MB/s';
+                        stats.push({ id: 'dl_speed', label: 'DL', value: dlMsg, color: 'var(--success)' });
+                        stats.push({ id: 'ul_speed', label: 'UL', value: ulMsg, color: 'var(--primary)' });
+                    }
+                }
+            } catch (e) {
+                console.error('qBittorrent API error:', e.message);
+            }
+        }
+        res.json({ online: true, latency: pingResult.latency, stats: stats.length > 0 ? stats : null });
+    } catch (error) {
+        const fb = await checkServiceReachable(url);
+        res.json({ online: fb.online, latency: fb.latency });
+    }
+});
+
+// Specific route for Proxmox (LIVE API)
+app.get('/api/proxmox/status', async (req, res) => {
+    const config = readConfig();
+    const appInfo = config.apps.find(a => a.id === 'proxmox');
+    if (!appInfo) return res.json({ online: false });
+
+    const url = appInfo.url;
+    const token = config.apiKeys.PROXMOX_TOKEN;
+
+    try {
+        const pingResult = await checkServiceReachable(url);
+        if (!pingResult.online) return res.json({ online: false });
+
+        let stats = [];
+        if (token) {
+            try {
+                const nodeRes = await axios.get(`${url}/api2/json/nodes`, {
+                    headers: { 'Authorization': `PVEAPIToken=${token}` },
+                    httpsAgent: insecureAgent,
+                    timeout: 3000
+                });
+
+                if (nodeRes.data && nodeRes.data.data) {
+                    let totalCpu = 0, totalMem = 0, maxMem = 0;
+                    nodeRes.data.data.forEach(node => {
+                        totalCpu += node.cpu || 0;
+                        totalMem += node.mem || 0;
+                        maxMem += node.maxmem || 0;
+                    });
+                    if (nodeRes.data.data.length > 0) {
+                        const avgCpu = (totalCpu / nodeRes.data.data.length * 100).toFixed(1) + '%';
+                        const memPct = (totalMem / maxMem * 100).toFixed(1) + '%';
+                        stats.push({ id: 'cpu', label: 'CPU', value: avgCpu, color: 'var(--primary)' });
+                        stats.push({ id: 'ram', label: 'RAM', value: memPct, color: 'var(--warning)' });
+                    }
+                }
+            } catch (e) {
+                console.error('Proxmox API error:', e.message);
             }
         }
         res.json({ online: true, latency: pingResult.latency, stats: stats.length > 0 ? stats : null });
