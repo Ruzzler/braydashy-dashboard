@@ -23,6 +23,14 @@ export interface AppItem {
     iconUrl?: string;
     icon: LucideIcon;
     widgetPreferences?: string[];
+    ignoreWorkspace?: boolean;
+}
+
+export interface GlanceWidget {
+    id: string;
+    type: 'rss' | 'system_stats' | 'clock';
+    url?: string;
+    label?: string;
 }
 
 export interface AppCategory {

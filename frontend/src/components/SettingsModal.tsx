@@ -149,6 +149,25 @@ export function SettingsModal({ config, onSave }: { config: any, onSave: (newCon
         }));
     };
 
+    const handleWidgetChange = (id: string, field: string, value: any) => {
+        setLocalConfig({
+            ...localConfig,
+            glanceWidgets: (localConfig.glanceWidgets || []).map((w: any) => w.id === id ? { ...w, [field]: value } : w)
+        });
+    };
+
+    const addWidget = () => {
+        const newWidget = { id: `widget-${Date.now()}`, type: 'clock' };
+        setLocalConfig({ ...localConfig, glanceWidgets: [...(localConfig.glanceWidgets || []), newWidget] });
+    };
+
+    const removeWidget = (id: string) => {
+        setLocalConfig({
+            ...localConfig,
+            glanceWidgets: (localConfig.glanceWidgets || []).filter((w: any) => w.id !== id)
+        });
+    };
+
     const handleGeneralChange = (field: string, value: string | boolean) => {
         setLocalConfig({
             ...localConfig,
@@ -173,11 +192,12 @@ export function SettingsModal({ config, onSave }: { config: any, onSave: (newCon
                 </DialogHeader>
 
                 <Tabs defaultValue="general" className="w-full mt-4">
-                    <TabsList className="grid w-full grid-cols-4 mb-8">
+                    <TabsList className="grid w-full grid-cols-5 mb-8">
                         <TabsTrigger value="general">General</TabsTrigger>
                         <TabsTrigger value="categories">Categories</TabsTrigger>
                         <TabsTrigger value="apps">Apps</TabsTrigger>
                         <TabsTrigger value="integrations">API Keys</TabsTrigger>
+                        <TabsTrigger value="widgets">Widgets</TabsTrigger>
                     </TabsList>
 
                     {/* General Tab */}
@@ -503,6 +523,63 @@ export function SettingsModal({ config, onSave }: { config: any, onSave: (newCon
                     </TabsContent>
 
                 </Tabs>
+
+                {/* Widgets Tab */}
+                <TabsContent value="widgets">
+                    <Card className="bg-transparent border-border">
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <div>
+                                <CardTitle>Glance Widgets</CardTitle>
+                                <CardDescription>Add quick info cards to the top of your dashboard.</CardDescription>
+                            </div>
+                            <button onClick={addWidget} className="bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2 inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors">
+                                <Plus className="w-4 h-4 mr-2" /> Add Widget
+                            </button>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {(localConfig.glanceWidgets || []).map((widget: any) => (
+                                <div key={widget.id} className="flex flex-col gap-4 bg-black/20 p-4 rounded-lg border border-border">
+                                    <div className="flex items-start gap-4">
+                                        <div className="flex-[1] space-y-1">
+                                            <Label className="text-xs text-muted-foreground">Widget Type</Label>
+                                            <select
+                                                value={widget.type}
+                                                onChange={e => handleWidgetChange(widget.id, 'type', e.target.value)}
+                                                className="flex h-8 w-full items-center justify-between rounded-md border border-input bg-background/50 px-3 py-1 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                            >
+                                                <option value="clock" className="bg-popover text-popover-foreground">Digital Clock</option>
+                                                <option value="system_stats" className="bg-popover text-popover-foreground">Local System Stats</option>
+                                                <option value="rss" className="bg-popover text-popover-foreground">RSS Feed</option>
+                                            </select>
+                                        </div>
+                                        <div className="pt-5">
+                                            <button onClick={() => removeWidget(widget.id)} className="text-destructive hover:text-destructive/80 p-1">
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                    {widget.type === 'rss' && (
+                                        <div className="flex items-start gap-4">
+                                            <div className="flex-[1] space-y-1">
+                                                <Label className="text-xs text-muted-foreground">Feed Label</Label>
+                                                <Input placeholder="e.g. HackerNews" value={widget.label || ''} onChange={e => handleWidgetChange(widget.id, 'label', e.target.value)} className="bg-background/50 h-8 text-xs" />
+                                            </div>
+                                            <div className="flex-[2] space-y-1">
+                                                <Label className="text-xs text-muted-foreground">RSS XML URL</Label>
+                                                <Input placeholder="https://..." value={widget.url || ''} onChange={e => handleWidgetChange(widget.id, 'url', e.target.value)} className="bg-background/50 h-8 font-mono text-xs" />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                            {(!localConfig.glanceWidgets || localConfig.glanceWidgets.length === 0) && (
+                                <div className="text-center py-8 text-muted-foreground">
+                                    <p>No widgets configured.</p>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
 
                 <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-border">
                     <button onClick={() => setOpen(false)} className="px-4 py-2 rounded-md text-sm font-medium hover:bg-secondary text-muted-foreground">Cancel</button>

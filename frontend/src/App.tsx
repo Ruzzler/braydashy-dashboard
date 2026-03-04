@@ -6,6 +6,8 @@ import * as Icons from 'lucide-react';
 import { formatIconName } from './lib/utils';
 import { WeatherWidget } from './components/WeatherWidget';
 import { WorkspaceViewer } from './components/WorkspaceViewer';
+import { GlanceWidget } from './data/apps';
+import { GlanceWidgetsRow } from './components/GlanceWidgets';
 
 interface AppItem {
   id: string;
@@ -34,6 +36,7 @@ interface Config {
   weatherUnit?: string;
   categories: Category[];
   apps: AppItem[];
+  glanceWidgets?: GlanceWidget[];
 }
 
 function AppCard({ app, style = 'glass', onOpenWorkspace }: { app: AppItem, style?: string, onOpenWorkspace?: (app: AppItem) => void }) {
@@ -208,6 +211,10 @@ function App() {
       <div className="relative z-10 w-full min-h-screen">
         <div className="max-w-7xl mx-auto px-8 py-12">
           <Header config={config} onSaveConfig={handleSaveConfig} />
+
+          {config.glanceWidgets && config.glanceWidgets.length > 0 && (
+            <GlanceWidgetsRow widgets={config.glanceWidgets} />
+          )}
 
           {config.enableWeather && config.weatherLocation && (
             <WeatherWidget location={config.weatherLocation} unit={config.weatherUnit || 'F'} />

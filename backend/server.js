@@ -30,7 +30,8 @@ function readConfig() {
         headerLayout: "classic",
         defaultSearchProvider: "google",
         enableWorkspaceMode: false,
-        categories: [], apps: [], apiKeys: {}
+        categories: [], apps: [], apiKeys: {},
+        glanceWidgets: []
     };
 
     try {
@@ -43,6 +44,7 @@ function readConfig() {
         if (!parsed.headerLayout) parsed.headerLayout = "classic";
         if (!parsed.defaultSearchProvider) parsed.defaultSearchProvider = "google";
         if (parsed.enableWorkspaceMode === undefined) parsed.enableWorkspaceMode = false;
+        if (!parsed.glanceWidgets) parsed.glanceWidgets = [];
         return parsed;
     } catch (e) {
         console.error("Critical error reading config.json:", e.message);
@@ -414,6 +416,40 @@ app.get('/api/docker/containers', async (req, res) => {
     } catch (e) {
         console.error("Docker API error:", e.message);
         res.status(500).json({ success: false, error: 'Failed to communicate with Docker socket. Is it mapped?' });
+    }
+});
+
+// RSS Proxy Integration
+app.get('/api/rss', async (req, res) => {
+    const feedUrl = req.query.url;
+    if (!feedUrl) return res.status(400).json({ error: 'URL parameter is required' });
+
+    try {
+        const response = await axios.get(feedUrl, { timeout: 3000 });
+        const xml = response.data;
+
+        let items = [];
+        const itemRegex = /<item>[\s\S]*?<\/item>/g;
+        const titleRegex = /<title><!\[CDATA\[([\s\S]*?)\]\]><\/title>|<title>(.*?)<\/title>/;
+        const linkRegex = /<link>(.*?)<\/link>/;
+
+        let match;
+        // Limit to top 5 items for performance
+        while ((match = itemRegex.exec(xml)) !== null && items.length < 5) {
+            const itemBlock = match[0];
+            const titleMatch = itemBlock.match(titleRegex);
+            const linkMatch = itemBlock.match(linkRegex);
+
+            if (titleMatch) {
+                const title = (titleMatch[1] || titleMatch[2]).trim();
+                const link = linkMatch ? linkMatch[1].trim() : '';
+                items.push({ title, link });
+            }
+        }
+        res.json({ success: true, items });
+    } catch (e) {
+        console.error("RSS API error:", e.message);
+        res.status(500).json({ success: false, error: 'Failed to fetch RSS feed' });
     }
 });
 
