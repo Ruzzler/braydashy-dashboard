@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    --background: 0 0% 98%;
+    --background: 240 5% 96%;
     --foreground: 240 10% 3.9%;
     --card: 0 0% 100%;
     --card-foreground: 240 10% 3.9%;
@@ -76,12 +76,12 @@
   position: absolute;
   border-radius: 50%;
   filter: blur(80px);
-  opacity: 0.04;
+  opacity: 0.15;
   animation: float 20s infinite ease-in-out alternate;
 }
 
 .dark .orb {
-  opacity: 0.4;
+  opacity: 0.5;
 }
 
 .orb-1 {
@@ -107,6 +107,7 @@
   background: #0ea5e9;
   top: 40%;
   left: 40%;
+  opacity: 0.3;
   animation-delay: -10s;
 }
 
