@@ -149,6 +149,21 @@ export function SettingsModal({ config, onSave }: { config: any, onSave: (newCon
                                         <p className="text-xs text-muted-foreground">Type a <a href="https://lucide.dev/icons/" target="_blank" rel="noreferrer" className="underline text-primary hover:text-foreground transition-colors">Lucide React Icon</a> name to customize the main logo.</p>
                                     </div>
                                     <div className="space-y-2 pt-2">
+                                        <Label htmlFor="defaultSearchProvider" className="font-semibold text-muted-foreground tracking-wider">Default Web Search Engine</Label>
+                                        <select
+                                            id="defaultSearchProvider"
+                                            value={localConfig.defaultSearchProvider || 'google'}
+                                            onChange={(e) => handleGeneralChange('defaultSearchProvider', e.target.value)}
+                                            className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
+                                        >
+                                            <option value="google" className="bg-popover text-popover-foreground">Google</option>
+                                            <option value="duckduckgo" className="bg-popover text-popover-foreground">DuckDuckGo</option>
+                                            <option value="bing" className="bg-popover text-popover-foreground">Bing</option>
+                                            <option value="youtube" className="bg-popover text-popover-foreground">YouTube</option>
+                                        </select>
+                                        <p className="text-xs text-muted-foreground">Hitting Enter in the search bar routes queries here (Supports <code className="bg-muted px-1 rounded">!g</code>, <code className="bg-muted px-1 rounded">!yt</code>, <code className="bg-muted px-1 rounded">!ddg</code>, <code className="bg-muted px-1 rounded">!bing</code> shortcuts).</p>
+                                    </div>
+                                    <div className="space-y-2 pt-2 border-t border-border mt-4">
                                         <Label htmlFor="headerLayout" className="font-semibold text-muted-foreground tracking-wider">Header Layout Style</Label>
                                         <select
                                             id="headerLayout"

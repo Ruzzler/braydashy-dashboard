@@ -153,7 +153,51 @@ export function Header({ config, onSaveConfig = () => { } }: { config?: any, onS
                 <Icons.Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input
                     type="text"
-                    placeholder="Filter apps..."
+                    placeholder="Search apps or the web..."
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                            const query = e.currentTarget.value.trim();
+                            if (!query) return;
+
+                            // Check if query exactly matches an app name, if so, we probably don't want to web search
+                            const isAppMatch = config?.apps?.some((a: any) => a.name.toLowerCase().includes(query.toLowerCase()));
+                            if (isAppMatch) return;
+
+                            let searchUrl = '';
+                            const searchProvider = config?.defaultSearchProvider || 'google';
+
+                            if (query.startsWith('!g ')) {
+                                searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query.substring(3))}`;
+                            } else if (query.startsWith('!ddg ')) {
+                                searchUrl = `https://duckduckgo.com/?q=${encodeURIComponent(query.substring(5))}`;
+                            } else if (query.startsWith('!yt ')) {
+                                searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(query.substring(4))}`;
+                            } else if (query.startsWith('!bing ')) {
+                                searchUrl = `https://www.bing.com/search?q=${encodeURIComponent(query.substring(6))}`;
+                            } else {
+                                // Use default provider
+                                switch (searchProvider) {
+                                    case 'duckduckgo':
+                                        searchUrl = `https://duckduckgo.com/?q=${encodeURIComponent(query)}`;
+                                        break;
+                                    case 'youtube':
+                                        searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+                                        break;
+                                    case 'bing':
+                                        searchUrl = `https://www.bing.com/search?q=${encodeURIComponent(query)}`;
+                                        break;
+                                    case 'google':
+                                    default:
+                                        searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+                                        break;
+                                }
+                            }
+
+                            if (searchUrl) {
+                                window.open(searchUrl, '_blank');
+                            }
+                        }
+                    }}
                     className="w-full py-2.5 px-4 pl-10 rounded-full border border-border bg-card text-foreground text-sm backdrop-blur-md transition-all focus:outline-none focus:border-ring focus:bg-white/10 dark:focus:bg-black/10"
                 />
             </div>

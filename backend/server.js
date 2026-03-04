@@ -27,7 +27,9 @@ if (!fs.existsSync(CONFIG_DIR)) {
 function readConfig() {
     const defaultConfig = {
         serverName: "BrayDashy",
-        headerLayout: "classic", categories: [], apps: [], apiKeys: {}
+        headerLayout: "classic",
+        defaultSearchProvider: "google",
+        categories: [], apps: [], apiKeys: {}
     };
 
     try {
@@ -38,6 +40,7 @@ function readConfig() {
         const parsed = JSON.parse(data);
         if (!parsed.serverName) parsed.serverName = "BrayDashy";
         if (!parsed.headerLayout) parsed.headerLayout = "classic";
+        if (!parsed.defaultSearchProvider) parsed.defaultSearchProvider = "google";
         return parsed;
     } catch (e) {
         console.error("Critical error reading config.json:", e.message);
