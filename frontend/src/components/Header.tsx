@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import * as Icons from 'lucide-react';
 import { SettingsModal } from './SettingsModal';
+import { ChangelogModal } from './ChangelogModal';
 import { formatIconName } from '../lib/utils';
 
 const SUBTITLES = [
@@ -46,6 +47,7 @@ export function Header({ config, onSaveConfig = () => { } }: { config?: any, onS
     const [isDark, setIsDark] = useState(true);
     const [systemStats, setSystemStats] = useState<{ cpu: string, ram: string, disk: string } | null>(null);
     const [subtitleIndex, setSubtitleIndex] = useState(0);
+    const [changelogOpen, setChangelogOpen] = useState(false);
 
     useEffect(() => {
         const updateTime = () => {
@@ -117,7 +119,13 @@ export function Header({ config, onSaveConfig = () => { } }: { config?: any, onS
                     </p>
                 </div>
                 <div className="inline-flex items-center">
-                    <span className="text-xs font-mono font-semibold text-emerald-800 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full shadow-sm">v{import.meta.env.VITE_APP_VERSION}</span>
+                    <button
+                        onClick={() => setChangelogOpen(true)}
+                        className="text-xs font-mono font-semibold text-emerald-800 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full shadow-sm hover:bg-emerald-500/20 transition-colors cursor-pointer"
+                    >
+                        v{import.meta.env.VITE_APP_VERSION}
+                    </button>
+                    <ChangelogModal open={changelogOpen} onOpenChange={setChangelogOpen} />
                 </div>
             </div>
         </div>
