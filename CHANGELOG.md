@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0-beta.1] - 2026-03-04
+
+### Added
+- **Universal Search & Shortcuts**: The top search bar now routes outward queries to configurable search engines (Google, DuckDuckGo) and supports `!bang` shortcuts (e.g. `!g search`).
+- **Complete API Settings Overhaul**: Completely reworked how API Keys are handled in Settings.
+- **Dynamic API Inputs**: The settings menu now intelligently detects what supported apps you have and only displays their API key input fields.
+- **Test Connections**: Added visual checkmark buttons to live-ping backend API keys inside the Settings Modal.
+- **Widget Toggles**: Added granular checkboxes per app so users can pick exactly which statistics are shown on the dashboard (e.g., Queue vs Wanted).
+
 ## [0.3.0-beta.1] - 2026-03-04
 
 ### Added
