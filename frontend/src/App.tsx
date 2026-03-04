@@ -5,6 +5,7 @@ import { Header } from './components/Header';
 import * as Icons from 'lucide-react';
 import { formatIconName } from './lib/utils';
 import { WeatherWidget } from './components/WeatherWidget';
+import { WorkspaceViewer } from './components/WorkspaceViewer';
 
 interface AppItem {
   id: string;
@@ -13,6 +14,7 @@ interface AppItem {
   iconType: 'image' | 'icon';
   icon: string;
   categoryId: string;
+  ignoreWorkspace?: boolean;
 }
 
 interface Category {
@@ -27,13 +29,14 @@ interface Config {
   headerLayout?: "classic" | "minimalist" | "split" | "sidebar";
   appCardStyle?: "glass" | "solid" | "outline";
   enableWeather?: boolean;
+  enableWorkspaceMode?: boolean;
   weatherLocation?: string;
   weatherUnit?: string;
   categories: Category[];
   apps: AppItem[];
 }
 
-function AppCard({ app, style = 'glass' }: { app: AppItem, style?: string }) {
+function AppCard({ app, style = 'glass', onOpenWorkspace }: { app: AppItem, style?: string, onOpenWorkspace?: (app: AppItem) => void }) {
   const [isOnline, setIsOnline] = useState<boolean | null>(null);
   const [stats, setStats] = useState<any[] | null>(null);
 
@@ -94,8 +97,15 @@ function AppCard({ app, style = 'glass' }: { app: AppItem, style?: string }) {
   };
   const currentIconStyle = iconStyle[style as keyof typeof iconStyle] || iconStyle.glass;
 
+  const handleClick = (e: React.MouseEvent) => {
+    if (onOpenWorkspace) {
+      e.preventDefault();
+      onOpenWorkspace(app);
+    }
+  };
+
   return (
-    <a href={app.url} target="_blank" rel="noreferrer" className={`${baseClasses} ${currentStyleClass}`}>
+    <a href={app.url} target="_blank" rel="noreferrer" onClick={handleClick} className={`${baseClasses} ${currentStyleClass}`}>
       {/* Light sweep effect */}
       {style === 'glass' && <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] pointer-events-none"></div>}
 
@@ -129,6 +139,7 @@ function AppCard({ app, style = 'glass' }: { app: AppItem, style?: string }) {
 
 function App() {
   const [config, setConfig] = useState<Config | null>(null);
+  const [activeWorkspace, setActiveWorkspace] = useState<AppItem | null>(null);
 
   useEffect(() => {
     fetch('/api/config')
@@ -186,6 +197,9 @@ function App() {
   return (
     <>
       <BackgroundOrbs />
+      {activeWorkspace && (
+        <WorkspaceViewer app={activeWorkspace} onClose={() => setActiveWorkspace(null)} />
+      )}
       <div className="relative z-10 w-full min-h-screen">
         <div className="max-w-7xl mx-auto px-8 py-12">
           <Header config={config} onSaveConfig={handleSaveConfig} />
@@ -205,7 +219,16 @@ function App() {
                     <h2 className="text-xl font-semibold text-muted-foreground border-b border-border pb-2">{cat.name}</h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                       {categoryApps.map(app => (
-                        <AppCard key={app.id} app={app} style={config.appCardStyle} />
+                        <AppCard
+                          key={app.id}
+                          app={app}
+                          style={config.appCardStyle}
+                          onOpenWorkspace={
+                            config.enableWorkspaceMode && !app.ignoreWorkspace
+                              ? (appItem) => setActiveWorkspace(appItem)
+                              : undefined
+                          }
+                        />
                       ))}
                     </div>
                   </section>

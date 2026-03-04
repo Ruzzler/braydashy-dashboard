@@ -29,6 +29,7 @@ function readConfig() {
         serverName: "BrayDashy",
         headerLayout: "classic",
         defaultSearchProvider: "google",
+        enableWorkspaceMode: false,
         categories: [], apps: [], apiKeys: {}
     };
 
@@ -41,6 +42,7 @@ function readConfig() {
         if (!parsed.serverName) parsed.serverName = "BrayDashy";
         if (!parsed.headerLayout) parsed.headerLayout = "classic";
         if (!parsed.defaultSearchProvider) parsed.defaultSearchProvider = "google";
+        if (parsed.enableWorkspaceMode === undefined) parsed.enableWorkspaceMode = false;
         return parsed;
     } catch (e) {
         console.error("Critical error reading config.json:", e.message);

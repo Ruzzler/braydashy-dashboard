@@ -256,6 +256,20 @@ export function SettingsModal({ config, onSave }: { config: any, onSave: (newCon
                                         <p className="text-xs text-muted-foreground">Customize the visual style of the application buttons.</p>
                                     </div>
                                     <div className="space-y-2 pt-2 border-t border-border mt-4">
+                                        <h4 className="font-semibold text-muted-foreground tracking-wider mb-2">Workspace Integration</h4>
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <input
+                                                type="checkbox"
+                                                id="enableWorkspaceMode"
+                                                checked={localConfig.enableWorkspaceMode || false}
+                                                onChange={(e) => handleGeneralChange('enableWorkspaceMode', e.target.checked)}
+                                                className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary accent-primary"
+                                            />
+                                            <Label htmlFor="enableWorkspaceMode" className="font-medium cursor-pointer">Enable Workspace Mode (IFrame Application Viewer)</Label>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground mb-4">When enabled, clicking an application opens it inside a dashboard overlay instead of a new tab.</p>
+                                    </div>
+                                    <div className="space-y-2 pt-2 border-t border-border mt-4">
                                         <h4 className="font-semibold text-muted-foreground tracking-wider mb-2">Weather Widget Integration</h4>
                                         <div className="flex items-center gap-2 mb-3">
                                             <input
@@ -455,6 +469,16 @@ export function SettingsModal({ config, onSave }: { config: any, onSave: (newCon
                                             <div className="flex-[2] space-y-1">
                                                 <Label className="text-xs text-muted-foreground">URL</Label>
                                                 <Input value={app.url} onChange={e => handleAppChange(app.id, 'url', e.target.value)} className="bg-background/50 h-8 font-mono text-xs" />
+                                                <div className="flex items-center gap-2 mt-2 pt-1 border-t border-border/30">
+                                                    <input
+                                                        type="checkbox"
+                                                        id={`ignoreWorkspace-${app.id}`}
+                                                        checked={app.ignoreWorkspace || false}
+                                                        onChange={e => handleAppChange(app.id, 'ignoreWorkspace', e.target.checked)}
+                                                        className="w-3 h-3 rounded border-gray-300 text-primary focus:ring-primary accent-primary"
+                                                    />
+                                                    <Label htmlFor={`ignoreWorkspace-${app.id}`} className="text-[10px] text-muted-foreground cursor-pointer">Force New Tab (Bypass Workspace)</Label>
+                                                </div>
                                             </div>
                                             <div className="flex-[2] space-y-1">
                                                 <Label className="text-xs text-muted-foreground">Icon URL / Lucide Name</Label>
