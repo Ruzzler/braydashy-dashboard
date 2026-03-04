@@ -321,6 +321,51 @@ app.get('/api/system/status', async (req, res) => {
     }
 });
 
+// Docker Socket Integration
+app.get('/api/docker/containers', async (req, res) => {
+    try {
+        let socketPath = process.platform === 'win32' ? '//./pipe/docker_engine' : '/var/run/docker.sock';
+        if (process.env.DOCKER_SOCKET) {
+            socketPath = process.env.DOCKER_SOCKET;
+        }
+
+        const response = await axios({
+            method: 'get',
+            url: 'http://localhost/v1.41/containers/json?all=true',
+            socketPath: socketPath
+        });
+
+        const containers = response.data.map(c => {
+            let port = '';
+            // Try to find a public mapped port first
+            if (c.Ports && c.Ports.length > 0) {
+                const publicPort = c.Ports.find(p => p.PublicPort);
+                if (publicPort) {
+                    port = publicPort.PublicPort;
+                } else {
+                    port = c.Ports[0].PrivatePort;
+                }
+            }
+
+            let name = c.Names && c.Names.length > 0 ? c.Names[0].replace(/^\//, '') : 'Unknown';
+
+            return {
+                id: c.Id.substring(0, 12),
+                name: name,
+                state: c.State,
+                status: c.Status,
+                port: port,
+                image: c.Image
+            };
+        });
+
+        res.json({ success: true, containers });
+    } catch (e) {
+        console.error("Docker API error:", e.message);
+        res.status(500).json({ success: false, error: 'Failed to communicate with Docker socket. Is it mapped?' });
+    }
+});
+
 // Generic route for any other app
 app.get('/api/:app/status', async (req, res) => {
     const appName = req.params.app;

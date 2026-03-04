@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Settings, Save, Plus, Trash2 } from 'lucide-react';
+import { ImportWizardModal } from './ImportWizardModal';
 
 export function SettingsModal({ config, onSave }: { config: any, onSave: (newConfig: any) => void }) {
     const [open, setOpen] = useState(false);
@@ -76,6 +77,13 @@ export function SettingsModal({ config, onSave }: { config: any, onSave: (newCon
             ...localConfig,
             apps: localConfig.apps.filter((a: any) => a.id !== id)
         });
+    };
+
+    const handleBulkImport = (newApps: any[]) => {
+        setLocalConfig((prev: any) => ({
+            ...prev,
+            apps: [...prev.apps, ...newApps]
+        }));
     };
 
     const handleGeneralChange = (field: string, value: string | boolean) => {
@@ -283,9 +291,12 @@ export function SettingsModal({ config, onSave }: { config: any, onSave: (newCon
                                     <CardTitle>App Links</CardTitle>
                                     <CardDescription>Manage the applications displayed on your dashboard.</CardDescription>
                                 </div>
-                                <button onClick={addApp} className="bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2 inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors">
-                                    <Plus className="w-4 h-4 mr-2" /> Add App
-                                </button>
+                                <div className="flex items-center gap-2">
+                                    <ImportWizardModal onImport={handleBulkImport} categories={localConfig.categories} />
+                                    <button onClick={addApp} className="bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2 inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors">
+                                        <Plus className="w-4 h-4 mr-2" /> Add App
+                                    </button>
+                                </div>
                             </CardHeader>
                             <CardContent className="space-y-6">
                                 {localConfig.apps.map((app: any) => (
