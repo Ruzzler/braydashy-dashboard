@@ -104,7 +104,7 @@ export function Header({ config, onSaveConfig = () => { } }: { config?: any, onS
                     <IconComp className="w-6 h-6 text-foreground drop-shadow-[0_0_10px_rgba(255,255,255,0.3)] dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]" />
                 </div>
                 <span className="text-gradient">
-                    {config?.serverName || "BrayServer"}
+                    {config?.serverName || "BrayDashy"}
                 </span>
             </h1>
             <div className={`mt-2 space-y-2 ${center ? 'flex flex-col items-center' : ''}`}>

@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>BrayDashy-Dashboard</Name>
+  <Repository>ghcr.io/ruzzler/braydashy-dashboard:latest</Repository>
+  <Registry>https://github.com/Ruzzler/braydashy-dashboard/pkgs/container/braydashy-dashboard</Registry>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/Ruzzler/braydashy-dashboard/issues</Support>
+  <Project>https://github.com/Ruzzler/braydashy-dashboard</Project>
+  <Overview>
+    A custom, beautiful, and highly dynamic unraid landing page dashboard for your server apps. Features a real-time reactive UI, 4 interchangeable layout styles, and live infrastructure metrics.
+  </Overview>
+  <Category>Tools: Network:Web</Category>
+  <WebUI>http://[IP]:[PORT:3000]/</WebUI>
+  <TemplateURL/>
+  <Icon>https://dashy.to/icons/monitor.png</Icon>
+  <ExtraParams/>
+  <PostArgs/>
+  <CPUset/>
+  <DateInstalled></DateInstalled>
+  <DonateText/>
+  <DonateLink/>
+  <Requires/>
+  <Config Name="WebUI Port" Target="3000" Default="3000" Mode="tcp" Description="The port the dashboard is accessible on" Type="Port" Display="always" Required="true" Mask="false">3000</Config>
+  <Config Name="App Data Config" Target="/app/config.json" Default="/mnt/user/appdata/brayserver-dashboard/config.json" Mode="rw" Description="Persistent storage location for your dashboard links, categories, and settings." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/brayserver-dashboard/config.json</Config>
+</Container>

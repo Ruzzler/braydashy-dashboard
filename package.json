@@ -1,5 +1,5 @@
 {
-  "name": "brayserver-dashboard",
+  "name": "braydashy-dashboard",
   "version": "0.1.0-alpha.1",
   "description": "Custom landing page for Unraid server",
   "main": "server.js",
