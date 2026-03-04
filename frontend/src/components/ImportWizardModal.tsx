@@ -155,6 +155,10 @@ export function ImportWizardModal({ onImport, categories }: { onImport: (apps: a
 
                     <TabsContent value="docker">
                         <div className="bg-black/20 border border-border rounded-xl p-4 space-y-4">
+                            <div className="bg-blue-500/10 border border-blue-500/30 text-blue-200 text-sm p-3 rounded-lg mb-2">
+                                <strong>How it works:</strong> This feature connects directly to your host's Docker socket to auto-discover running containers. <br />
+                                <span className="opacity-80"><em>Note:</em> You must map <code>/var/run/docker.sock</code> to the same path inside this container for this to work.</span>
+                            </div>
                             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between pointer-events-auto">
                                 <div className="space-y-1 w-full sm:w-1/2 px-1">
                                     <label className="text-xs text-muted-foreground font-semibold uppercase tracking-widest">Base Host IP (for links)</label>
@@ -212,9 +216,15 @@ export function ImportWizardModal({ onImport, categories }: { onImport: (apps: a
 
                     <TabsContent value="json">
                         <div className="bg-black/20 border border-border rounded-xl p-4 space-y-4">
-                            <p className="text-sm text-muted-foreground mb-2">
-                                Paste the AI-generated JSON array of your Unraid applications here. Ensure it matches the requested format: <code className="bg-black/40 px-1 rounded text-xs text-blue-300">[{`{"name": "App", "url": "http://..", "icon": "appname"}`}]</code>
-                            </p>
+                            <div className="bg-purple-500/10 border border-purple-500/30 text-purple-200 text-sm p-3 rounded-lg mb-2 space-y-2">
+                                <p><strong>How to use AI to import your Unraid apps:</strong></p>
+                                <ol className="list-decimal pl-5 space-y-1">
+                                    <li>Take a screenshot of your Unraid Docker page (Ensure "LAN IP:PORT" column is visible).</li>
+                                    <li>Open <a href="https://gemini.google.com/" target="_blank" rel="noreferrer" className="text-purple-400 font-semibold hover:underline">Google Gemini</a> and paste the screenshot into the chat.</li>
+                                    <li>Copy and paste this exact prompt: <br /><code className="bg-black/40 px-2 py-1 rounded block mt-1 border border-purple-500/20">Extract the running apps from this screenshot. Format as a raw JSON array: [{`{"name": "App", "url": "http://IP:PORT", "icon": "appname"}`}]</code></li>
+                                    <li>Paste the resulting JSON below!</li>
+                                </ol>
+                            </div>
                             <textarea
                                 value={jsonInput}
                                 onChange={e => setJsonInput(e.target.value)}
