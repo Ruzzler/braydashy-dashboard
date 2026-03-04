@@ -6,20 +6,27 @@ let mockConfig = {
     headerLayout: "classic",
     appCardStyle: "glass",
     enableWeather: true,
-    weatherLocation: "London, UK",
+    weatherLocation: "Vancouver, Canada",
     weatherUnit: "C",
     categories: [
         { id: "media", name: "Media Delivery", order: 1 },
         { id: "manage", name: "Media Management", order: 2 },
-        { id: "infra", name: "Infrastructure", order: 3 }
+        { id: "infra", name: "Infrastructure", order: 3 },
+        { id: "smarthome", name: "Smart Home", order: 4 }
     ],
     apps: [
         { id: "plex", name: "Plex", url: "https://plex.tv", iconType: "icon", icon: "PlaySquare", categoryId: "media" },
         { id: "jellyfin", name: "Jellyfin", url: "https://jellyfin.org", iconType: "icon", icon: "Tv", categoryId: "media" },
+        { id: "audiobookshelf", name: "Audiobookshelf", url: "https://audiobookshelf.org", iconType: "icon", icon: "Headphones", categoryId: "media" },
         { id: "sonarr", name: "Sonarr", url: "https://sonarr.tv", iconType: "icon", icon: "DownloadCloud", categoryId: "manage" },
         { id: "radarr", name: "Radarr", url: "https://radarr.video", iconType: "icon", icon: "Film", categoryId: "manage" },
+        { id: "prowlarr", name: "Prowlarr", url: "https://prowlarr.com", iconType: "icon", icon: "Search", categoryId: "manage" },
+        { id: "qbit", name: "qBittorrent", url: "https://qbittorrent.org", iconType: "icon", icon: "Download", categoryId: "manage" },
         { id: "tautulli", name: "Tautulli", url: "https://tautulli.com", iconType: "icon", icon: "Activity", categoryId: "infra" },
-        { id: "kuma", name: "Uptime Kuma", url: "https://uptime.kuma", iconType: "icon", icon: "HeartPulse", categoryId: "infra" }
+        { id: "kuma", name: "Uptime Kuma", url: "https://uptime.kuma", iconType: "icon", icon: "HeartPulse", categoryId: "infra" },
+        { id: "pihole", name: "Pi-hole", url: "https://pi-hole.net", iconType: "icon", icon: "Shield", categoryId: "infra" },
+        { id: "homeassistant", name: "Home Assistant", url: "https://home-assistant.io", iconType: "icon", icon: "Home", categoryId: "smarthome" },
+        { id: "homebridge", name: "Homebridge", url: "https://homebridge.io", iconType: "icon", icon: "Wifi", categoryId: "smarthome" }
     ],
     apiKeys: {}
 };
