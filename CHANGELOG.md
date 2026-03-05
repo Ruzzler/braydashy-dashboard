@@ -25,10 +25,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Invisible Grip Icons**: Edit-mode drag handles in the Glance Widgets row were always hidden. Fixed by adding `group relative` to the `SortableWidgetItem` wrapper so `group-hover` activates correctly.
-- **Dead AppCard Eliminated**: Removed the duplicate, unused `AppCard` component definition. The single canonical `AppCard.tsx` is now used everywhere.
+- **Dead Code Elimination**: Purged redundant Vite scaffold files (`App.css`, `vite.svg`, `react.svg`), unused legacy components (`BackgroundOrbs.tsx`), and deleted the stale root `config.json`.
 - **WorkspaceViewer Crash**: `new URL(app.url).host` would throw on malformed URLs, crashing the workspace panel. Now wrapped in a try/catch.
 - **Unused State Removed**: Removed the `_loading` state variable from `WeatherGlanceWidget` that was declared but never read.
 - **Docker Build Context**: Expanded `.dockerignore` to exclude pixel art source assets, markdown files, and local `config.json` from the Docker build context, reducing image build time and size.
+
+### Reorganized
+- **Repository Structure**: Consistently moved all pet pixel art data into `frontend/scripts/` to keep the production bundle slim.
+- **Centralized Types**: Moved all shared TypeScript interfaces to a single `src/types.ts` file, eliminating the redundant `src/data/apps.ts` import layer.
+- **Clean Root**: Cleaned up the project root by removing legacy config and lock files, ensuring all application data correctly resides in `data/`.
 
 ## [0.7.5] - 2026-03-05
 

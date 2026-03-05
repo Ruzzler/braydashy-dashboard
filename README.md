@@ -11,11 +11,11 @@
 
 BrayDashy is a modern dashboard engineered specifically for home servers and self-hosted environments. Built on a React and Node.js architecture, it provides a centralized interface for application management, live infrastructure monitoring, and service health tracking.
 
-## Architecture
+## Architecture (v0.8.0)
 
-*   **Frontend:** React 18, Vite, TypeScript, Tailwind CSS, shadcn/ui.
-*   **Backend:** Node.js Express Server (handles secure local proxying and configuration state).
-*   **Persistency:** All state is tracked in a local `config.json` volume mount, abstracting API keys and configurations away from environment variables.
+*   **Frontend:** React 18, Vite, TypeScript, Tailwind CSS. Orchestrated by a lean, component-driven architecture with centralized type safety (`types.ts`).
+*   **Backend:** Node.js Express Server utilizing a high-efficiency Route Factory pattern for service integrations. Implements server-side SSRF validation and body-size protection for secure management.
+*   **Persistency:** State is persisted in a local `data/config.json` volume mount, isolating sensitive API keys and layout preferences from environment variables and version control.
 
 ## Core Capabilities
 

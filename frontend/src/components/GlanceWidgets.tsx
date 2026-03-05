@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import * as Icons from 'lucide-react';
-import { GlanceWidget } from '../data/apps';
+import { GlanceWidget } from '../types';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, horizontalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
