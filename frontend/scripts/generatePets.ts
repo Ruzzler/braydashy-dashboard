@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { createCanvas } from 'canvas';
-import { PET_COLORS, COFFEE_COLORS, PET_FRAMES, COFFEE_FRAMES } from '../src/data/petFrames';
+import { PET_COLORS, COFFEE_COLORS, PET_FRAMES, COFFEE_FRAMES } from './petFrames';
 
 const SCALE = 10;
 const FRAME_SIZE = 16;
