@@ -71,10 +71,6 @@
   background-image: radial-gradient(circle, currentColor 1px, transparent 1px);
 }
 
-.clip-path-polygon {
-  clip-path: polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%);
-}
-
 /* Animated Background Orbs */
 .background-orbs {
   position: fixed;
@@ -145,114 +141,26 @@
   }
 }
 
-@keyframes pulse {
-  0% {
-    transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-  }
-
-  70% {
-    transform: scale(1);
-    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
-  }
-
-  100% {
-    transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
-  }
-}
-
-.pulse {
-  animation: pulse 2s infinite;
-}
-
-.text-gradient {
-  background: linear-gradient(to right, #1e293b, #475569);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.dark .text-gradient {
-  background: linear-gradient(to right, #ffffff, #94a3b8);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-/* Base properties for all desktop pet sprites */
+/* Base properties for desktop pet sprites */
 .bmo-sprite,
-.coffee-sprite,
-.sprout-sprite,
-.chicken-sprite,
-.cow-sprite,
-.object-sprite {
+.coffee-sprite {
   width: 64px;
   height: 64px;
   background-repeat: no-repeat;
+  background-size: auto 64px;
   image-rendering: -moz-crisp-edges;
   image-rendering: -webkit-crisp-edges;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
 }
 
-.agent-sprite {
-  width: 32px;
-  height: 64px;
-  background-repeat: no-repeat;
-  image-rendering: -moz-crisp-edges;
-  image-rendering: -webkit-crisp-edges;
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
-}
-
-/* Base Sprite Sheets (2.0x Scaled) */
-.bmo-sprite,
-.coffee-sprite {
-  background-size: auto 64px;
-}
-
-.sprout-sprite {
-  background-size: 256px 256px;
-}
-
-.chicken-sprite {
-  background-size: 256px 128px;
-}
-
-.cow-sprite {
-  background-size: 384px 192px;
-}
-
-.object-sprite {
-  background-size: auto 64px;
-}
-
-.agent-sprite {
-  background-size: 224px 192px;
-}
-
-/* ======== ANIMATIONS ======== */
-
-/* BMO / Coffee Animations */
+/* Sprite Animations */
 .pet-walk {
   animation: sprite-walk 0.8s steps(4) infinite;
 }
 
 .pet-idle {
   animation: sprite-idle 1s steps(1) infinite;
-}
-
-.pet-blink {
-  animation: sprite-blink 0.3s steps(1) infinite;
-}
-
-.pet-inflate {
-  animation: sprite-inflate 1s steps(2) forwards;
-}
-
-.pet-water {
-  animation: sprite-water 0.8s steps(2) infinite;
 }
 
 @keyframes sprite-walk {
@@ -275,281 +183,7 @@
   }
 }
 
-@keyframes sprite-blink {
-  0% {
-    background-position: 0px 0;
-  }
-
-  100% {
-    background-position: -64px 0;
-  }
-}
-
-@keyframes sprite-inflate {
-  0% {
-    background-position: 0px 0;
-  }
-
-  100% {
-    background-position: -128px 0;
-  }
-}
-
-@keyframes sprite-water {
-  0% {
-    background-position: 0px 0;
-  }
-
-  100% {
-    background-position: -128px 0;
-  }
-}
-
-/* Chicken Animations */
-.chicken-idle {
-  background-position: 0 0;
-}
-
-.chicken-walk {
-  animation: chicken-walk 0.8s steps(4) infinite;
-}
-
-@keyframes chicken-walk {
-  from {
-    background-position: 0 -64px;
-  }
-
-  to {
-    background-position: -256px -64px;
-  }
-}
-
-/* Cow Animations */
-.cow-idle {
-  background-position: 0 0;
-}
-
-.cow-walk {
-  animation: cow-walk 1.2s steps(3) infinite;
-}
-
-@keyframes cow-walk {
-  from {
-    background-position: 0 -64px;
-  }
-
-  to {
-    background-position: -192px -64px;
-  }
-}
-
-/* Objects */
-.object-chest-closed {
-  background-position: 0 0;
-}
-
-.object-chest-open {
-  background-position: -64px 0;
-}
-
-.object-plant-short {
-  background-position: 0 0;
-}
-
-.object-plant-tall {
-  background-position: -64px 0;
-}
-
-/* Sprout Animations */
-.sprout-idle-down {
-  background-position: 0 0;
-}
-
-.sprout-idle-up {
-  background-position: 0 -64px;
-}
-
-.sprout-idle-left {
-  background-position: 0 -128px;
-}
-
-.sprout-idle-right {
-  background-position: 0 -192px;
-}
-
-.sprout-walk-down {
-  animation: sprout-row-0 0.8s steps(4) infinite;
-}
-
-.sprout-walk-up {
-  animation: sprout-row-1 0.8s steps(4) infinite;
-}
-
-.sprout-walk-left {
-  animation: sprout-row-2 0.8s steps(4) infinite;
-}
-
-.sprout-walk-right {
-  animation: sprout-row-3 0.8s steps(4) infinite;
-}
-
-.sprout-axe {
-  animation: sprout-action 0.6s steps(2) forwards;
-}
-
-.sprout-pickaxe {
-  animation: sprout-action 0.6s steps(2) forwards;
-}
-
-.sprout-water {
-  animation: sprout-action 0.6s steps(2) forwards;
-}
-
-@keyframes sprout-row-0 {
-  from {
-    background-position: 0 0;
-  }
-
-  to {
-    background-position: -256px 0;
-  }
-}
-
-@keyframes sprout-row-1 {
-  from {
-    background-position: 0 -64px;
-  }
-
-  to {
-    background-position: -256px -64px;
-  }
-}
-
-@keyframes sprout-row-2 {
-  from {
-    background-position: 0 -128px;
-  }
-
-  to {
-    background-position: -256px -128px;
-  }
-}
-
-@keyframes sprout-row-3 {
-  from {
-    background-position: 0 -192px;
-  }
-
-  to {
-    background-position: -256px -192px;
-  }
-}
-
-@keyframes sprout-action {
-  from {
-    background-position: 0 0;
-  }
-
-  to {
-    background-position: -128px 0;
-  }
-}
-
-/* Agent Animations (Proper 4-frame cycle without sliding) */
-.agent-idle-down {
-  background-position: -32px 0;
-}
-
-.agent-walk-down {
-  animation: agent-walk-down 0.8s infinite;
-}
-
-@keyframes agent-walk-down {
-
-  0%,
-  24.9% {
-    background-position: 0 0;
-  }
-
-  25%,
-  49.9% {
-    background-position: -32px 0;
-  }
-
-  50%,
-  74.9% {
-    background-position: -64px 0;
-  }
-
-  75%,
-  100% {
-    background-position: -32px 0;
-  }
-}
-
-.agent-idle-up {
-  background-position: -32px -64px;
-}
-
-.agent-walk-up {
-  animation: agent-walk-up 0.8s infinite;
-}
-
-@keyframes agent-walk-up {
-
-  0%,
-  24.9% {
-    background-position: 0 -64px;
-  }
-
-  25%,
-  49.9% {
-    background-position: -32px -64px;
-  }
-
-  50%,
-  74.9% {
-    background-position: -64px -64px;
-  }
-
-  75%,
-  100% {
-    background-position: -32px -64px;
-  }
-}
-
-.agent-idle-right {
-  background-position: -32px -128px;
-}
-
-.agent-walk-right {
-  animation: agent-walk-right 0.8s infinite;
-}
-
-@keyframes agent-walk-right {
-
-  0%,
-  24.9% {
-    background-position: 0 -128px;
-  }
-
-  25%,
-  49.9% {
-    background-position: -32px -128px;
-  }
-
-  50%,
-  74.9% {
-    background-position: -64px -128px;
-  }
-
-  75%,
-  100% {
-    background-position: -32px -128px;
-  }
-}
-
-/* Emote Bubbles */
+/* Emote / Thought Bubble */
 .emote-bubble {
   position: absolute;
   top: -40px;
@@ -598,4 +232,19 @@
     transform: translate(-50%, -25px);
     opacity: 0;
   }
+}
+
+/* Standard UI gradients */
+.text-gradient {
+  background: linear-gradient(to right, #1e293b, #475569);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.dark .text-gradient {
+  background: linear-gradient(to right, #ffffff, #94a3b8);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }

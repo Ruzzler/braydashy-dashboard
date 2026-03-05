@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.4] - 2026-03-05
+### Removed
+- **Sprout Characters**: Removed all Sprout Lands character assets (Sprout, Chicken, Cow) and world objects.
+- **Pixel Agents**: Deprecated the Pixel Agent companion characters.
+### Changed
+- **Pet Simplification**: Reverted the Dashboard mascot system to focus exclusively on BMO and Coffee Mug for a cleaner, more focused experience.
+- **Asset Cleanup**: Purged all unused companion character png layers to reduce bundle size.
+
 ## [0.7.3] - 2026-03-05
 ### Added
 - **Pixel Agent Characters**: Integrated 6 new office-themed character variants as companion pets on the dashboard.

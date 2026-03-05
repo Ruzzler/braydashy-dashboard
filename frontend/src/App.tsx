@@ -390,7 +390,6 @@ function App() {
           <div className="relative w-full h-0 z-50">
             {(activeConfig.showDesktopPet !== false && (activeConfig.desktopPetType === 'bmo' || activeConfig.desktopPetType === 'both' || !activeConfig.desktopPetType)) && <DesktopPet petType="bmo" />}
             {(activeConfig.showDesktopPet !== false && (activeConfig.desktopPetType === 'coffee_mug' || activeConfig.desktopPetType === 'both')) && <DesktopPet petType="coffee_mug" />}
-            {(activeConfig.showDesktopPet !== false && activeConfig.desktopPetType === 'sprout') && <DesktopPet petType="sprout" />}
           </div>
 
           {activeConfig.glanceWidgets && activeConfig.glanceWidgets.length > 0 && (
