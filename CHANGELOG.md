@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-03-04
+
+### Added
+- **Multi-Pet System**: The free-roaming desktop pet feature has been vastly expanded. You can now select between the classic BMO robot, a new Coffee Mug character that sloshes coffee, or spawn both simultaneously from the Settings menu!
+- **Super-Refined Pixel Art Animations**: Reworked the entire animation state machine for the pets. They now utilize a professional 4-frame walk cycle (contact, down, passing, up) with proper alternating leg swings and realistic Y-axis body bobbing for incredibly smooth movement tracking.
+- **Custom Idle Interactions**: The Coffee Mug features its own custom idle states including blowing steam and spilling coffee, rather than recycling BMO's watering and balloon animations.
+- **Dynamic Walk Speed Calculation**: The pet transition engine now calculates `Math.abs(newPos - position) * 0.1` independently, guaranteeing continuous and realistic pacing regardless of how far the pet is traveling across the screen.
+
 ## [0.6.0-beta.3] - 2026-03-04
 
 ### Added

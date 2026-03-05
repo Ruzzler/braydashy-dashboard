@@ -24,6 +24,7 @@ BrayDashy is a modern dashboard engineered specifically for home servers and sel
 *   **In-Browser Configuration:** A comprehensive settings modal allows operators to add services, categorize links, and inject API keys without utilizing the terminal.
 *   **Workspace Overlay Mode:** Confine application web interfaces directly inside the dashboard using an interactive IFrame viewer instead of opening endless new tabs.
 *   **Glance Widgets**: Build a custom scrolling row of system status rings, beautiful digital clocks, and proxy-routed RSS feeds fetched on the fly.
+*   **Free-Roaming Desktop Pets**: A built-in pixel art state-machine powers animated companions (BMO & Coffee Mug) that freely walk across your dashboard header, complete with unique Y-axis bobbing movement and interactive idle tasks.
 *   **Infrastructure Telemetry:** Built-in polling securely queries system CPU, RAM, and Disk utilization.
 *   **Application Health & Latency:** The backend proxies requests to services like Proxmox, Pi-hole, qBittorrent, Sonarr, Radarr, Tautulli, and more to render live connection latency (`14ms`) and queue metrics directly on the app interfaces.
 
