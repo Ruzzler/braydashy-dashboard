@@ -121,11 +121,11 @@ export function AppCard({ app, style = 'glass', layout = 'grid', size = 'medium'
 
     return (
         <a
-            href={app.url}
+            href={isEditMode ? undefined : app.url}
             target="_blank"
             rel="noreferrer"
             onClick={handleClick}
-            className={`${baseClasses} ${activeFill} ${isEditMode ? 'cursor-grab active:cursor-grabbing hover:border-primary ring-2 ring-transparent hover:ring-primary/20' : ''}`}
+            className={`${baseClasses} ${activeFill} ${isEditMode ? 'cursor-grab active:cursor-grabbing border-primary ring-4 ring-primary/20 shadow-[0_0_15px_rgba(var(--primary),0.3)]' : ''}`}
             title={isMinimal ? app.name : ''}
         >
             {/* Light sweep effect */}

@@ -15,7 +15,7 @@ function ClockWidget({ isEditMode, isLarge }: { isEditMode?: boolean, isLarge?: 
     }, []);
 
     return (
-        <div className={`flex-shrink-0 ${isLarge ? 'w-[400px]' : 'w-[240px]'} h-28 bg-card/60 rounded-xl border border-border/50 p-5 flex flex-col justify-center backdrop-blur-md shadow-sm snap-start ${isEditMode ? 'cursor-grab active:cursor-grabbing hover:border-primary/50 hover:bg-card/80 transition-all' : ''}`}>
+        <div className={`flex-shrink-0 ${isLarge ? 'w-[400px]' : 'w-[240px]'} h-28 bg-card/60 rounded-xl border border-border/50 p-5 flex flex-col justify-center backdrop-blur-md shadow-sm snap-start ${isEditMode ? 'cursor-grab active:cursor-grabbing border-primary ring-4 ring-primary/20 shadow-[0_0_15px_rgba(var(--primary),0.3)] bg-card/80 transition-all font-medium ring-offset-2 ring-offset-background/10' : ''}`}>
             <div className="text-4xl font-black tracking-tighter text-foreground tabular-nums leading-none mb-1">
                 {time.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
             </div>
@@ -56,7 +56,7 @@ function SystemStatsWidget({ isEditMode, isLarge }: { isEditMode?: boolean, isLa
     };
 
     return (
-        <div className={`flex-shrink-0 ${isLarge ? 'w-[450px]' : 'w-[300px]'} h-28 bg-card/60 rounded-xl border border-border/50 px-6 flex items-center justify-between backdrop-blur-md shadow-sm snap-start ${isEditMode ? 'cursor-grab active:cursor-grabbing hover:border-primary/50 hover:bg-card/80 transition-all' : ''}`}>
+        <div className={`flex-shrink-0 ${isLarge ? 'w-[450px]' : 'w-[300px]'} h-28 bg-card/60 rounded-xl border border-border/50 px-6 flex items-center justify-between backdrop-blur-md shadow-sm snap-start ${isEditMode ? 'cursor-grab active:cursor-grabbing border-primary ring-4 ring-primary/20 shadow-[0_0_15px_rgba(var(--primary),0.3)] bg-card/80 transition-all ring-offset-2 ring-offset-background/10' : ''}`}>
             {ring(stats?.cpu || '0%', 'CPU')}
             {ring(stats?.ram || '0%', 'RAM')}
             {ring(stats?.disk || '0%', 'DSK')}
@@ -86,7 +86,7 @@ function RSSWidget({ widget, isEditMode, isLarge }: { widget: GlanceWidget, isEd
     }, [widget.url]);
 
     return (
-        <div className={`flex-shrink-0 ${isLarge ? 'w-[600px]' : 'w-[400px]'} h-28 bg-card/60 rounded-xl border border-border/50 p-4 flex flex-col backdrop-blur-md shadow-sm overflow-hidden relative group snap-start ${isEditMode ? 'cursor-grab active:cursor-grabbing hover:border-primary/50 hover:bg-card/80 transition-all' : ''}`}>
+        <div className={`flex-shrink-0 ${isLarge ? 'w-[600px]' : 'w-[400px]'} h-28 bg-card/60 rounded-xl border border-border/50 p-4 flex flex-col backdrop-blur-md shadow-sm overflow-hidden relative group snap-start ${isEditMode ? 'cursor-grab active:cursor-grabbing border-primary ring-4 ring-primary/20 shadow-[0_0_15px_rgba(var(--primary),0.3)] bg-card/80 transition-all ring-offset-2 ring-offset-background/10' : ''}`}>
             <div className="flex items-center gap-2 mb-2 text-primary">
                 <Icons.Rss className="w-4 h-4" />
                 <span className="text-xs font-bold uppercase tracking-widest">{widget.label || 'RSS Feed'}</span>
@@ -96,7 +96,7 @@ function RSSWidget({ widget, isEditMode, isLarge }: { widget: GlanceWidget, isEd
             ) : items.length > 0 ? (
                 <div className="flex flex-col gap-1.5 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] absolute top-10 bottom-3 left-4 right-4 text-sm">
                     {items.map((item, i) => (
-                        <a key={i} href={item.link} target="_blank" rel="noreferrer" className="block text-muted-foreground hover:text-foreground hover:underline truncate transition-colors leading-tight font-medium opacity-80 hover:opacity-100">
+                        <a key={i} href={isEditMode ? undefined : item.link} target="_blank" rel="noreferrer" className={`block text-muted-foreground hover:text-foreground hover:underline truncate transition-velocity duration-200 leading-tight font-medium opacity-80 hover:opacity-100 ${isEditMode ? 'pointer-events-none' : ''}`}>
                             • {item.title}
                         </a>
                     ))}
@@ -183,7 +183,7 @@ function WeatherGlanceWidget({ widget, isEditMode, isLarge }: { widget: GlanceWi
     };
 
     return (
-        <div className={`flex-shrink-0 ${isLarge ? 'w-[400px]' : 'w-[280px]'} h-28 bg-card/60 rounded-xl border border-border/50 px-6 py-4 flex items-center gap-5 backdrop-blur-md shadow-sm snap-start ${isEditMode ? 'cursor-grab active:cursor-grabbing hover:border-primary/50 hover:bg-card/80 transition-all' : ''}`}>
+        <div className={`flex-shrink-0 ${isLarge ? 'w-[400px]' : 'w-[280px]'} h-28 bg-card/60 rounded-xl border border-border/50 px-6 py-4 flex items-center gap-5 backdrop-blur-md shadow-sm snap-start ${isEditMode ? 'cursor-grab active:cursor-grabbing border-primary ring-4 ring-primary/20 shadow-[0_0_15px_rgba(var(--primary),0.3)] bg-card/80 transition-all ring-offset-2 ring-offset-background/10' : ''}`}>
             {weatherData ? (
                 <>
                     <div className={isLarge ? 'scale-150 ml-4 mr-2' : ''}>{getWeatherIcon(weatherData.code)}</div>
