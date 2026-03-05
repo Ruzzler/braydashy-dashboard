@@ -276,48 +276,6 @@ export function SettingsModal({ config, onSave, onPreviewConfig }: { config: any
                                         </div>
                                         <p className="text-xs text-muted-foreground mb-4">When enabled, clicking an application opens it inside a dashboard overlay instead of a new tab.</p>
                                     </div>
-                                    <div className="space-y-2 pt-2 border-t border-border mt-4">
-                                        <h4 className="font-semibold text-muted-foreground tracking-wider mb-2">Weather Widget Integration</h4>
-                                        <div className="flex items-center gap-2 mb-3">
-                                            <input
-                                                type="checkbox"
-                                                id="enableWeather"
-                                                checked={localConfig.enableWeather || false}
-                                                onChange={(e) => handleGeneralChange('enableWeather', e.target.checked)}
-                                                className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
-                                            />
-                                            <Label htmlFor="enableWeather" className="font-medium cursor-pointer">Enable Local Weather Panel</Label>
-                                        </div>
-                                        {localConfig.enableWeather && (
-                                            <div className="space-y-2">
-                                                <div className="flex gap-3">
-                                                    <div className="flex-1 space-y-2">
-                                                        <Label htmlFor="weatherLocation" className="text-xs text-muted-foreground">Location (City, Country)</Label>
-                                                        <Input
-                                                            id="weatherLocation"
-                                                            placeholder="e.g. New York, US or London, UK"
-                                                            value={localConfig.weatherLocation || ''}
-                                                            onChange={(e) => handleGeneralChange('weatherLocation', e.target.value)}
-                                                            className="bg-black/20"
-                                                        />
-                                                    </div>
-                                                    <div className="w-24 space-y-2">
-                                                        <Label htmlFor="weatherUnit" className="text-xs text-muted-foreground">Unit</Label>
-                                                        <select
-                                                            id="weatherUnit"
-                                                            value={localConfig.weatherUnit || 'F'}
-                                                            onChange={(e) => handleGeneralChange('weatherUnit', e.target.value)}
-                                                            className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                                                        >
-                                                            <option value="F" className="bg-popover text-popover-foreground">°F</option>
-                                                            <option value="C" className="bg-popover text-popover-foreground">°C</option>
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                                <p className="text-xs text-muted-foreground">Used to fetch real-time public weather data via Open-Meteo.</p>
-                                            </div>
-                                        )}
-                                    </div>
                                 </div>
                             </CardContent>
                         </Card>
@@ -534,7 +492,21 @@ export function SettingsModal({ config, onSave, onPreviewConfig }: { config: any
                                                 >
                                                     <option value="clock" className="bg-popover text-popover-foreground">Digital Clock</option>
                                                     <option value="system_stats" className="bg-popover text-popover-foreground">Local System Stats</option>
+                                                    <option value="weather" className="bg-popover text-popover-foreground">Live Weather</option>
                                                     <option value="rss" className="bg-popover text-popover-foreground">RSS Feed</option>
+                                                    <option value="pet" className="bg-popover text-popover-foreground">Interactive Desktop Pet</option>
+                                                </select>
+                                            </div>
+                                            <div className="flex-[1] space-y-1">
+                                                <Label className="text-xs text-muted-foreground">Size Preference</Label>
+                                                <select
+                                                    value={widget.size || 'medium'}
+                                                    onChange={e => handleWidgetChange(widget.id, 'size', e.target.value)}
+                                                    className="flex h-8 w-full items-center justify-between rounded-md border border-input bg-background/50 px-3 py-1 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                                >
+                                                    <option value="small" className="bg-popover text-popover-foreground">Small</option>
+                                                    <option value="medium" className="bg-popover text-popover-foreground">Medium</option>
+                                                    <option value="large" className="bg-popover text-popover-foreground">Large</option>
                                                 </select>
                                             </div>
                                             <div className="pt-5">
@@ -543,6 +515,25 @@ export function SettingsModal({ config, onSave, onPreviewConfig }: { config: any
                                                 </button>
                                             </div>
                                         </div>
+                                        {widget.type === 'weather' && (
+                                            <div className="flex items-start gap-4">
+                                                <div className="flex-[2] space-y-1">
+                                                    <Label className="text-xs text-muted-foreground">Location (City, Country)</Label>
+                                                    <Input placeholder="e.g. London, UK" value={widget.label || ''} onChange={e => handleWidgetChange(widget.id, 'label', e.target.value)} className="bg-background/50 h-8 text-xs" />
+                                                </div>
+                                                <div className="flex-[1] space-y-1">
+                                                    <Label className="text-xs text-muted-foreground">Unit</Label>
+                                                    <select
+                                                        value={widget.url === 'C' ? 'C' : 'F'}
+                                                        onChange={e => handleWidgetChange(widget.id, 'url', e.target.value)}
+                                                        className="flex h-8 w-full items-center justify-between rounded-md border border-input bg-background/50 px-3 py-1 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                                    >
+                                                        <option value="F" className="bg-popover text-popover-foreground">Fahrenheit (°F)</option>
+                                                        <option value="C" className="bg-popover text-popover-foreground">Celsius (°C)</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        )}
                                         {widget.type === 'rss' && (
                                             <div className="flex items-start gap-4">
                                                 <div className="flex-[1] space-y-1">
@@ -576,86 +567,132 @@ export function SettingsModal({ config, onSave, onPreviewConfig }: { config: any
                             <CardContent className="space-y-6">
                                 <div className="space-y-4">
                                     <h4 className="font-semibold text-muted-foreground tracking-wider border-b border-border/50 pb-2">Global Theming</h4>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="themeColor" className="font-semibold text-muted-foreground tracking-wider">Primary Theme Color</Label>
-                                        <select
-                                            id="themeColor"
-                                            value={localConfig.themeColor || 'zinc'}
-                                            onChange={(e) => handleGeneralChange('themeColor', e.target.value)}
-                                            className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
-                                        >
-                                            <option value="zinc" className="bg-popover text-popover-foreground">Zinc (Default Dark Grey)</option>
-                                            <option value="slate" className="bg-popover text-popover-foreground">Slate (Cool Blue/Grey)</option>
-                                            <option value="emerald" className="bg-popover text-popover-foreground">Emerald Green</option>
-                                            <option value="blue" className="bg-popover text-popover-foreground">Ocean Blue</option>
-                                            <option value="rose" className="bg-popover text-popover-foreground">Rose Pink</option>
-                                            <option value="violet" className="bg-popover text-popover-foreground">Deep Violet</option>
-                                            <option value="amber" className="bg-popover text-popover-foreground">Warm Amber</option>
-                                        </select>
-                                        <p className="text-xs text-muted-foreground">Changes the default active states and CSS variables across all components.</p>
+                                    <div className="space-y-3">
+                                        <Label className="font-semibold text-muted-foreground tracking-wider">Primary Theme Color</Label>
+                                        <div className="flex flex-wrap gap-4">
+                                            {[
+                                                { id: 'zinc', bg: 'bg-zinc-500' },
+                                                { id: 'slate', bg: 'bg-slate-500' },
+                                                { id: 'emerald', bg: 'bg-emerald-500' },
+                                                { id: 'blue', bg: 'bg-blue-500' },
+                                                { id: 'rose', bg: 'bg-rose-500' },
+                                                { id: 'violet', bg: 'bg-violet-500' },
+                                                { id: 'amber', bg: 'bg-amber-500' }
+                                            ].map(theme => (
+                                                <div
+                                                    key={theme.id}
+                                                    onClick={() => handleGeneralChange('themeColor', theme.id)}
+                                                    className={`w-10 h-10 rounded-full cursor-pointer transition-all border-4 flex items-center justify-center ${theme.bg} ${localConfig.themeColor === theme.id ? 'border-foreground scale-110 shadow-lg' : 'border-transparent hover:scale-105'}`}
+                                                    title={theme.id}
+                                                >
+                                                    {localConfig.themeColor === theme.id && <div className="w-2 h-2 rounded-full bg-white shadow-sm"></div>}
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <p className="text-xs text-muted-foreground pt-1">Changes the default active states, Orbs, and CSS variables across all components.</p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4 pt-4">
+                                    <h4 className="font-semibold text-muted-foreground tracking-wider border-b border-border/50 pb-2">Dynamic Backgrounds</h4>
+                                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                                        {[
+                                            { id: 'orbs', label: 'Floating Orbs', icon: '✨' },
+                                            { id: 'grid', label: 'Blueprint Grid', icon: '▦' },
+                                            { id: 'waves', label: 'Waves', icon: '〰' },
+                                            { id: 'dots', label: 'Dotted Paint', icon: '⠿' },
+                                            { id: 'none', label: 'Solid Flat', icon: '⬛' }
+                                        ].map(bg => (
+                                            <div
+                                                key={bg.id}
+                                                onClick={() => handleGeneralChange('backgroundStyle', bg.id)}
+                                                className={`flex flex-col items-center justify-center p-3 rounded-xl cursor-pointer border-2 transition-all text-center gap-2 ${localConfig.backgroundStyle === bg.id || (!localConfig.backgroundStyle && bg.id === 'orbs') ? 'border-primary shadow-md bg-primary/10 text-primary' : 'border-border/50 hover:border-border hover:bg-card/50 bg-background/50 text-muted-foreground'}`}
+                                            >
+                                                <div className="text-2xl">{bg.icon}</div>
+                                                <span className={`text-xs font-semibold ${localConfig.backgroundStyle === bg.id || (!localConfig.backgroundStyle && bg.id === 'orbs') ? 'text-foreground' : ''}`}>{bg.label}</span>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
 
                                 <div className="space-y-4 pt-4">
                                     <h4 className="font-semibold text-muted-foreground tracking-wider border-b border-border/50 pb-2">Header Structure</h4>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="appearanceHeaderLayout" className="font-semibold text-muted-foreground tracking-wider">Header Layout Profile</Label>
-                                        <select
-                                            id="appearanceHeaderLayout"
-                                            value={localConfig.headerLayout || 'classic'}
-                                            onChange={(e) => handleGeneralChange('headerLayout', e.target.value)}
-                                            className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
-                                        >
-                                            <option value="classic" className="bg-popover text-popover-foreground">Classic (Default)</option>
-                                            <option value="minimalist" className="bg-popover text-popover-foreground">Minimalist (Centered Hero)</option>
-                                            <option value="split" className="bg-popover text-popover-foreground">Split View (Left/Right Grid)</option>
-                                            <option value="sidebar" className="bg-popover text-popover-foreground">Dynamic Sidebar</option>
-                                        </select>
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                        {[
+                                            { id: 'classic', label: 'Classic' },
+                                            { id: 'minimalist', label: 'Minimalist' },
+                                            { id: 'split', label: 'Split View' },
+                                            { id: 'sidebar', label: 'Sidebar' }
+                                        ].map(layout => (
+                                            <div
+                                                key={layout.id}
+                                                onClick={() => handleGeneralChange('headerLayout', layout.id)}
+                                                className={`flex items-center justify-center p-3 rounded-lg cursor-pointer border-2 transition-all text-center ${localConfig.headerLayout === layout.id ? 'border-primary shadow-md bg-primary/10 text-foreground' : 'border-border/50 hover:border-border hover:bg-card/50 text-muted-foreground'}`}
+                                            >
+                                                <span className="text-sm font-medium">{layout.label}</span>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
 
                                 <div className="space-y-4 pt-4">
                                     <h4 className="font-semibold text-muted-foreground tracking-wider border-b border-border/50 pb-2">App Card Styling</h4>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="appCardLayout" className="font-semibold text-muted-foreground tracking-wider">Card Layout Structure</Label>
-                                            <select
-                                                id="appCardLayout"
-                                                value={localConfig.appCardLayout || 'grid'}
-                                                onChange={(e) => handleGeneralChange('appCardLayout', e.target.value)}
-                                                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
-                                            >
-                                                <option value="grid" className="bg-popover text-popover-foreground">Grid (Standard Cards)</option>
-                                                <option value="list" className="bg-popover text-popover-foreground">List (Compact Horizontal Rows)</option>
-                                                <option value="minimal" className="bg-popover text-popover-foreground">Minimal (Icon Only Hover Cards)</option>
-                                            </select>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="appCardSize" className="font-semibold text-muted-foreground tracking-wider">Base Size Variant</Label>
-                                            <select
-                                                id="appCardSize"
-                                                value={localConfig.appCardSize || 'medium'}
-                                                onChange={(e) => handleGeneralChange('appCardSize', e.target.value)}
-                                                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
-                                            >
-                                                <option value="small" className="bg-popover text-popover-foreground">Small</option>
-                                                <option value="medium" className="bg-popover text-popover-foreground">Medium (Default)</option>
-                                                <option value="large" className="bg-popover text-popover-foreground">Large (Chunky)</option>
-                                            </select>
+
+                                    <div className="space-y-3">
+                                        <Label className="text-xs font-semibold text-muted-foreground tracking-wider uppercase">Card Layout Structure</Label>
+                                        <div className="grid grid-cols-3 gap-3">
+                                            {[
+                                                { id: 'grid', label: 'Grid' },
+                                                { id: 'list', label: 'Compact List' },
+                                                { id: 'minimal', label: 'Minimal Icon' }
+                                            ].map(layout => (
+                                                <div
+                                                    key={layout.id}
+                                                    onClick={() => handleGeneralChange('appCardLayout', layout.id)}
+                                                    className={`p-2 rounded-lg cursor-pointer border-2 transition-all text-center ${localConfig.appCardLayout === layout.id ? 'border-primary shadow-md bg-primary/10 text-foreground' : 'border-border/50 hover:border-border hover:bg-card/50 text-muted-foreground'}`}
+                                                >
+                                                    <span className="text-xs font-medium">{layout.label}</span>
+                                                </div>
+                                            ))}
                                         </div>
                                     </div>
-                                    <div className="space-y-2 pt-2">
-                                        <Label htmlFor="appearanceAppCardStyle" className="font-semibold text-muted-foreground tracking-wider">Card Fill Aesthetic</Label>
-                                        <select
-                                            id="appearanceAppCardStyle"
-                                            value={localConfig.appCardStyle || 'glass'}
-                                            onChange={(e) => handleGeneralChange('appCardStyle', e.target.value)}
-                                            className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
-                                        >
-                                            <option value="glass" className="bg-popover text-popover-foreground">Glassmorphism (Default)</option>
-                                            <option value="solid" className="bg-popover text-popover-foreground">Solid Minimalist</option>
-                                            <option value="outline" className="bg-popover text-popover-foreground">Clean Outline</option>
-                                        </select>
+
+                                    <div className="space-y-3 pt-2">
+                                        <Label className="text-xs font-semibold text-muted-foreground tracking-wider uppercase">Base Size Variant</Label>
+                                        <div className="grid grid-cols-3 gap-3">
+                                            {[
+                                                { id: 'small', label: 'Small' },
+                                                { id: 'medium', label: 'Medium' },
+                                                { id: 'large', label: 'Large' }
+                                            ].map(size => (
+                                                <div
+                                                    key={size.id}
+                                                    onClick={() => handleGeneralChange('appCardSize', size.id)}
+                                                    className={`p-2 rounded-lg cursor-pointer border-2 transition-all text-center ${localConfig.appCardSize === size.id ? 'border-primary shadow-md bg-primary/10 text-foreground' : 'border-border/50 hover:border-border hover:bg-card/50 text-muted-foreground'}`}
+                                                >
+                                                    <span className="text-xs font-medium">{size.label}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-3 pt-2">
+                                        <Label className="text-xs font-semibold text-muted-foreground tracking-wider uppercase">Card Fill Aesthetic</Label>
+                                        <div className="grid grid-cols-3 gap-3">
+                                            {[
+                                                { id: 'glass', label: 'Glassmorphism' },
+                                                { id: 'solid', label: 'Solid Minimalist' },
+                                                { id: 'outline', label: 'Clean Outline' }
+                                            ].map(style => (
+                                                <div
+                                                    key={style.id}
+                                                    onClick={() => handleGeneralChange('appCardStyle', style.id)}
+                                                    className={`p-2 rounded-lg cursor-pointer border-2 transition-all text-center ${localConfig.appCardStyle === style.id ? 'border-primary shadow-md bg-primary/10 text-foreground' : 'border-border/50 hover:border-border hover:bg-card/50 text-muted-foreground'}`}
+                                                >
+                                                    <span className="text-xs font-medium">{style.label}</span>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
                             </CardContent>

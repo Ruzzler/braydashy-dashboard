@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <Container version="2">
-  <Name>BrayDashy-Dashboard</Name>
+  <Name>BrayDashy</Name>
   <Repository>ghcr.io/ruzzler/braydashy-dashboard:latest</Repository>
   <Registry>https://github.com/Ruzzler/braydashy-dashboard/pkgs/container/braydashy-dashboard</Registry>
   <Network>bridge</Network>

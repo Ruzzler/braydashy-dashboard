@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, ExternalLink, Loader2 } from 'lucide-react';
+import { ExternalLink, Loader2, ArrowLeft } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { formatIconName } from '../lib/utils';
 
@@ -58,12 +58,12 @@ export function WorkspaceViewer({ app, onClose }: WorkspaceViewerProps) {
                         <ExternalLink className="w-3.5 h-3.5" />
                         Open in New Tab
                     </button>
-                    <div className="w-px h-6 bg-border mx-1"></div>
+                    <div className="w-px h-6 bg-border mx-4"></div>
                     <button
                         onClick={onClose}
-                        className="h-8 w-8 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive flex items-center justify-center transition-colors"
+                        className="h-8 px-4 rounded-md bg-destructive/10 hover:bg-destructive text-destructive hover:text-white flex items-center justify-center gap-2 transition-colors font-medium text-xs ring-1 ring-destructive/20"
                     >
-                        <X className="w-4 h-4" />
+                        <ArrowLeft className="w-4 h-4" /> Back to Dashboard
                     </button>
                 </div>
             </div>

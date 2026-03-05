@@ -42,7 +42,7 @@ const SUBTITLES = [
     "I'm fluent in three languages: English, Sarcasm, and JavaScript."
 ];
 
-export function Header({ config, onSaveConfig = () => { }, onPreviewConfig = () => { }, onOpenCommandPalette = () => { } }: { config?: any, onSaveConfig?: (newConfig: any) => void, onPreviewConfig?: (newConfig: any) => void, onOpenCommandPalette?: () => void }) {
+export function Header({ config, onSaveConfig = () => { }, onPreviewConfig = () => { }, onOpenCommandPalette = () => { }, isEditMode = false, setIsEditMode = () => { } }: { config?: any, onSaveConfig?: (newConfig: any) => void, onPreviewConfig?: (newConfig: any) => void, onOpenCommandPalette?: () => void, isEditMode?: boolean, setIsEditMode?: (mode: boolean) => void }) {
     const [time, setTime] = useState("");
     const [isDark, setIsDark] = useState(true);
     const [systemStats, setSystemStats] = useState<{ cpu: string, ram: string, disk: string } | null>(null);
@@ -213,6 +213,13 @@ export function Header({ config, onSaveConfig = () => { }, onPreviewConfig = () 
             >
                 {isDark ? <Icons.Sun className="w-5 h-5" /> : <Icons.Moon className="w-5 h-5" />}
             </button>
+            <button
+                onClick={() => setIsEditMode(!isEditMode)}
+                title={isEditMode ? "Save Layout" : "Edit Layout"}
+                className={`flex-shrink-0 border w-11 h-11 rounded-full flex items-center justify-center transition-all backdrop-blur-md ${isEditMode ? 'bg-primary text-primary-foreground border-primary animate-pulse' : 'bg-card border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground hover:scale-110'}`}
+            >
+                {isEditMode ? <Icons.Save className="w-5 h-5" /> : <Icons.LayoutDashboard className="w-5 h-5" />}
+            </button>
             <SettingsModal config={config} onSave={onSaveConfig} onPreviewConfig={onPreviewConfig} />
         </div>
     );
@@ -226,6 +233,9 @@ export function Header({ config, onSaveConfig = () => { }, onPreviewConfig = () 
             <div className="w-8 h-[1px] bg-border/50"></div>
             <button onClick={toggleTheme} className="flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center text-muted-foreground hover:bg-secondary transition-all">
                 {isDark ? <Icons.Sun className="w-5 h-5" /> : <Icons.Moon className="w-5 h-5" />}
+            </button>
+            <button onClick={() => setIsEditMode(!isEditMode)} className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-all ${isEditMode ? 'bg-primary text-primary-foreground animate-pulse' : 'text-muted-foreground hover:bg-secondary'}`}>
+                {isEditMode ? <Icons.Save className="w-5 h-5" /> : <Icons.LayoutDashboard className="w-5 h-5" />}
             </button>
             <div className="w-8 h-[1px] bg-border/50"></div>
             <SettingsModal config={config} onSave={onSaveConfig} onPreviewConfig={onPreviewConfig} />

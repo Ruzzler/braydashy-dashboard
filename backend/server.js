@@ -31,6 +31,7 @@ if (!fs.existsSync(CONFIG_DIR)) {
 function readConfig() {
     const defaultConfig = {
         serverName: "BrayDashy",
+        backgroundStyle: "orbs",
         headerLayout: "classic",
         defaultSearchProvider: "google",
         enableWorkspaceMode: false,
@@ -48,6 +49,7 @@ function readConfig() {
         const data = fs.readFileSync(CONFIG_PATH, 'utf8');
         const parsed = JSON.parse(data);
         if (!parsed.serverName) parsed.serverName = "BrayDashy";
+        if (!parsed.backgroundStyle) parsed.backgroundStyle = "orbs";
         if (!parsed.headerLayout) parsed.headerLayout = "classic";
         if (!parsed.defaultSearchProvider) parsed.defaultSearchProvider = "google";
         if (parsed.enableWorkspaceMode === undefined) parsed.enableWorkspaceMode = false;

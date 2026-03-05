@@ -28,9 +28,10 @@ export interface AppItem {
 
 export interface GlanceWidget {
     id: string;
-    type: 'rss' | 'system_stats' | 'clock';
-    url?: string;
-    label?: string;
+    type: 'clock' | 'system_stats' | 'weather' | 'rss' | 'calendar' | 'pet';
+    label?: string; // e.g. "HackerNews"
+    url?: string; // used for RSS feed
+    size?: 'small' | 'medium' | 'large';
 }
 
 export interface AppCategory {

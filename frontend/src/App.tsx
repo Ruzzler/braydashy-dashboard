@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
 import { renderToString } from 'react-dom/server';
-import { BackgroundOrbs } from './components/BackgroundOrbs';
+import { DynamicBackground } from './components/DynamicBackground';
 import { Header } from './components/Header';
 import * as Icons from 'lucide-react';
 import { formatIconName } from './lib/utils';
-import { WeatherWidget } from './components/WeatherWidget';
 import { WorkspaceViewer } from './components/WorkspaceViewer';
 import { CommandPalette } from './components/CommandPalette';
 import { GlanceWidget } from './data/apps';
 import { GlanceWidgetsRow } from './components/GlanceWidgets';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, rectSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface AppItem {
   id: string;
@@ -29,6 +31,7 @@ interface Category {
 interface Config {
   serverName: string;
   serverIcon?: string;
+  backgroundStyle?: string;
   headerLayout?: "classic" | "minimalist" | "split" | "sidebar";
   themeColor?: "zinc" | "slate" | "emerald" | "blue" | "rose" | "violet" | "amber";
   appCardStyle?: "glass" | "solid" | "outline";
@@ -43,7 +46,31 @@ interface Config {
   glanceWidgets?: GlanceWidget[];
 }
 
-function AppCard({ app, style = 'glass', layout = 'grid', size = 'medium', onOpenWorkspace }: { app: AppItem, style?: string, layout?: string, size?: string, onOpenWorkspace?: (app: AppItem) => void }) {
+function SortableAppCard({ id, app, style, layout, size, onOpenWorkspace, isEditMode }: { id: string, app: AppItem, style?: string, layout?: string, size?: string, onOpenWorkspace?: (app: AppItem) => void, isEditMode: boolean }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: id, disabled: !isEditMode });
+
+  const dndStyle = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : 'auto',
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={dndStyle} {...(isEditMode ? attributes : {})} {...(isEditMode ? listeners : {})}>
+      <AppCard
+        app={app}
+        style={style}
+        layout={layout}
+        size={size}
+        onOpenWorkspace={onOpenWorkspace}
+        isEditMode={isEditMode}
+      />
+    </div>
+  );
+}
+
+function AppCard({ app, style = 'glass', layout = 'grid', size = 'medium', onOpenWorkspace, isEditMode }: { app: AppItem, style?: string, layout?: string, size?: string, onOpenWorkspace?: (app: AppItem) => void, isEditMode?: boolean }) {
   const [isOnline, setIsOnline] = useState<boolean | null>(null);
   const [latency, setLatency] = useState<number | null>(null);
   const [stats, setStats] = useState<any[] | null>(null);
@@ -145,6 +172,10 @@ function AppCard({ app, style = 'glass', layout = 'grid', size = 'medium', onOpe
   const currentIconStyle = iconStyle[style as keyof typeof iconStyle] || iconStyle.glass;
 
   const handleClick = (e: React.MouseEvent) => {
+    if (isEditMode) {
+      e.preventDefault();
+      return;
+    }
     if (onOpenWorkspace) {
       e.preventDefault();
       onOpenWorkspace(app);
@@ -152,7 +183,7 @@ function AppCard({ app, style = 'glass', layout = 'grid', size = 'medium', onOpe
   };
 
   return (
-    <a href={app.url} target="_blank" rel="noreferrer" onClick={handleClick} className={`${baseClasses} ${activeFill}`} title={isMinimal ? app.name : ''}>
+    <a href={app.url} target="_blank" rel="noreferrer" onClick={handleClick} className={`${baseClasses} ${activeFill} ${isEditMode ? 'cursor-grab active:cursor-grabbing hover:border-primary ring-2 ring-transparent hover:ring-primary/20' : ''}`} title={isMinimal ? app.name : ''}>
       {/* Light sweep effect */}
       {style === 'glass' && <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] pointer-events-none"></div>}
 
@@ -195,6 +226,7 @@ function App() {
   const [previewConfig, setPreviewConfig] = useState<Config | null>(null);
   const [activeWorkspace, setActiveWorkspace] = useState<AppItem | null>(null);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   const activeConfig = previewConfig || config;
 
@@ -284,6 +316,11 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor)
+  );
+
   if (!activeConfig) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Loading Dashboard Data...</div>;
 
   const sortedCategories = [...activeConfig.categories].sort((a, b) => a.order - b.order);
@@ -304,9 +341,29 @@ function App() {
     }
   };
 
+  const handleWidgetsReorder = (newWidgetsArray: GlanceWidget[]) => {
+    const updatedConfig = { ...activeConfig, glanceWidgets: newWidgetsArray };
+    handleSaveConfig(updatedConfig);
+  };
+
+  const handleAppReorder = (_categoryId: string, event: DragEndEvent) => {
+    const { active, over } = event;
+    if (active.id !== over?.id && over) {
+      // Find the old and new indices *across the entire apps array*
+      const oldIndex = activeConfig.apps.findIndex(a => a.id === active.id);
+      const newIndex = activeConfig.apps.findIndex(a => a.id === over.id);
+
+      // Only re-sort if they are swapping within the SAME category.
+      // Easiest is to just re-sort the global array
+      const newAppsArray = arrayMove(activeConfig.apps, oldIndex, newIndex);
+      const updatedConfig = { ...activeConfig, apps: newAppsArray };
+      handleSaveConfig(updatedConfig);
+    }
+  };
+
   return (
     <>
-      <BackgroundOrbs themeColor={activeConfig?.themeColor} />
+      <DynamicBackground themeColor={activeConfig?.themeColor} backgroundStyle={activeConfig?.backgroundStyle} />
       {activeWorkspace && (
         <WorkspaceViewer app={activeWorkspace} onClose={() => setActiveWorkspace(null)} />
       )}
@@ -324,14 +381,16 @@ function App() {
             onSaveConfig={handleSaveConfig}
             onPreviewConfig={setPreviewConfig}
             onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+            isEditMode={isEditMode}
+            setIsEditMode={setIsEditMode}
           />
 
           {activeConfig.glanceWidgets && activeConfig.glanceWidgets.length > 0 && (
-            <GlanceWidgetsRow widgets={activeConfig.glanceWidgets} />
-          )}
-
-          {activeConfig.enableWeather && activeConfig.weatherLocation && (
-            <WeatherWidget location={activeConfig.weatherLocation} unit={activeConfig.weatherUnit || 'F'} />
+            <GlanceWidgetsRow
+              widgets={activeConfig.glanceWidgets}
+              isEditMode={isEditMode}
+              onWidgetsReorder={handleWidgetsReorder}
+            />
           )}
 
           <main className="w-full">
@@ -343,22 +402,28 @@ function App() {
                 return (
                   <section key={cat.id} className="flex flex-col gap-5">
                     <h2 className="text-xl font-semibold text-muted-foreground border-b border-border pb-2">{cat.name}</h2>
-                    <div className={`grid gap-6 ${activeConfig.appCardLayout === 'list' ? 'grid-cols-1' : activeConfig.appCardLayout === 'minimal' ? 'grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12' : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4'}`}>
-                      {categoryApps.map(app => (
-                        <AppCard
-                          key={app.id}
-                          app={app}
-                          style={activeConfig.appCardStyle}
-                          layout={activeConfig.appCardLayout}
-                          size={activeConfig.appCardSize}
-                          onOpenWorkspace={
-                            activeConfig.enableWorkspaceMode && !app.ignoreWorkspace
-                              ? (appItem) => setActiveWorkspace(appItem)
-                              : undefined
-                          }
-                        />
-                      ))}
-                    </div>
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => handleAppReorder(cat.id, e)}>
+                      <SortableContext items={categoryApps.map(a => a.id)} strategy={rectSortingStrategy}>
+                        <div className={`grid gap-6 ${activeConfig.appCardLayout === 'list' ? 'grid-cols-1' : activeConfig.appCardLayout === 'minimal' ? 'grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12' : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4'}`}>
+                          {categoryApps.map(app => (
+                            <SortableAppCard
+                              key={app.id}
+                              id={app.id}
+                              app={app}
+                              style={activeConfig.appCardStyle}
+                              layout={activeConfig.appCardLayout}
+                              size={activeConfig.appCardSize}
+                              isEditMode={isEditMode}
+                              onOpenWorkspace={
+                                activeConfig.enableWorkspaceMode && !app.ignoreWorkspace
+                                  ? (appItem) => setActiveWorkspace(appItem)
+                                  : undefined
+                              }
+                            />
+                          ))}
+                        </div>
+                      </SortableContext>
+                    </DndContext>
                   </section>
                 );
               })}

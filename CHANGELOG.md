@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0-beta.3] - 2026-03-04
+
+### Added
+- **Visual Edit Mode**: Introduced a new toggle in the top right header to activate Drag and Drop mode globally. You can now effortlessly click and drag to reorganize and sort Application Cards within their categories and shuffle your top row of Glance Widgets.
+- **Interactive Desktop Pet**: Spawns a dedicated robot mascot right inside the Glance Widgets row! Includes a full CSS animation suite that reacts to hover interactions and mouse clicks (with floating hearts!). 
+- **Workspace Enhancements**: Added a very prominent `<- Back to Dashboard` button when rendering iframes to make escaping them substantially more intuitive.
+- **Widget Resizing Engine**: Rebuilt the Glance Widgets Row CSS matrix to natively support Tailwind `col-span` arguments. You can now resize individual widgets (Small, Medium, Large) from the Settings modal.
+- **Weather Widget Migration**: Ripped out the legacy global Weather block and rebuilt it as a modular `WeatherGlanceWidget` that can be generated, positioned, and dropped directly into the widget flow dynamically.
+
 ## [0.6.0-beta.2] - 2026-03-04
 
 ### Added
