@@ -31,6 +31,13 @@ export interface Category {
     order: number;
 }
 
+export interface SearchProvider {
+    id: string;
+    name: string;
+    url: string; // e.g. https://www.google.com/search?q={query}
+    prefix: string; // e.g. !g
+}
+
 export interface Config {
     serverName: string;
     serverIcon?: string;
@@ -48,8 +55,9 @@ export interface Config {
     apps: AppItem[];
     glanceWidgets?: GlanceWidget[];
     showDesktopPet?: boolean;
-    desktopPetType?: 'bmo' | 'coffee_mug' | 'coffee_mug_v2' | 'latte_art' | 'french_press' | 'espresso_shot' | 'pour_over' | 'takeout_cup' | 'mocha_frappe' | 'both';
+    desktopPetType?: 'bmo' | 'coffee_mug' | 'latte_art' | 'french_press' | 'both';
     defaultSearchProvider?: string;
+    searchProviders?: SearchProvider[];
     apiKeys?: Record<string, string>;
 }
 

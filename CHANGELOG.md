@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.6] - 2026-03-06
+
+### Added
+- **Advanced Search Configuration**: Replaced hardcoded search shortcuts with a dynamic provider list in Settings. Users can now add, edit, and delete custom search engines (e.g., `!imdb`).
+- **Full Coffee Pet Roster**: Expanded the character selector to include all 9 planned coffee-themed pets (French Press, Espresso Shot, Pour Over, Takeout Cup, Mocha Frappé, etc.).
+- **Docker OCI Labels**: Added standard `org.opencontainers` metadata labels to the Dockerfile for better visibility in update tools like Watchtower.
+
+### Fixed
+- **App.tsx Stability**: Fixed missing variable declarations that caused intermittent rendering issues when toggling pet types.
+- **Search Logic**: Improved prefix detection to correctly handle custom prefixes without colliding with default search queries.
+
 ## [0.8.5] - 2026-03-05
 
 ### Added

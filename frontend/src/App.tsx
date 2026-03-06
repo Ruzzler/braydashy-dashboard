@@ -11,14 +11,15 @@ import { CommandPalette } from './components/CommandPalette';
 import { GlanceWidgetsRow } from './components/GlanceWidgets';
 import { AppCard } from './components/AppCard';
 import { DesktopPet } from './components/DesktopPet';
-import { CoffeeMugV2Pet } from './components/CoffeeMugV2Pet';
 import { LatteArtPet } from './components/LatteArtPet';
+import { FrenchPressPet } from './components/FrenchPressPet';
 
 import {
   DndContext,
   closestCenter,
   KeyboardSensor,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   DragEndEvent
@@ -57,7 +58,12 @@ function SortableAppCard({ id, app, style, layout, size, onOpenWorkspace, isEdit
   };
 
   return (
-    <div ref={setNodeRef} style={dndStyle} {...(isEditMode ? attributes : {})} {...(isEditMode ? listeners : {})}>
+    <div
+      ref={setNodeRef}
+      style={{ ...dndStyle, touchAction: isEditMode ? 'none' : 'auto' }}
+      {...(isEditMode ? attributes : {})}
+      {...(isEditMode ? listeners : {})}
+    >
       <AppCard
         app={app}
         style={style}
@@ -159,6 +165,7 @@ function App() {
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
     useSensor(KeyboardSensor)
   );
 
@@ -202,15 +209,17 @@ function App() {
 
   const petType = activeConfig.desktopPetType;
   const showPets = activeConfig.showDesktopPet !== false;
+
+  // Map of pet types to their components
+  const petComponentMap: Record<string, React.FC> = {
+    latte_art: LatteArtPet,
+    french_press: FrenchPressPet,
+  };
+  const CustomPetComponent = showPets && petType ? petComponentMap[petType] : null;
+
+  // Selection for the legacy DesktopPet (BMO/Original Coffee)
   const showBmo = showPets && (petType === 'bmo' || petType === 'both' || !petType);
   const showCoffee = showPets && (petType === 'coffee_mug' || petType === 'both');
-
-  // Map of SVG pet types to their components
-  const svgPetMap: Record<string, React.FC> = {
-    coffee_mug_v2: CoffeeMugV2Pet,
-    latte_art: LatteArtPet,
-  };
-  const SvgPetComponent = showPets && petType ? svgPetMap[petType] : null;
 
   const visibleCategories = sortedCategories.filter(cat =>
     activeConfig.apps.some(a => a.categoryId === cat.id)
@@ -266,7 +275,7 @@ function App() {
                         <div className="absolute bottom-0 left-0 w-full h-0 pointer-events-none z-50">
                           {showBmo && <DesktopPet petType="bmo" />}
                           {showCoffee && <DesktopPet petType="coffee_mug" />}
-                          {SvgPetComponent && <SvgPetComponent />}
+                          {CustomPetComponent && <CustomPetComponent />}
                         </div>
                       )}
                     </div>

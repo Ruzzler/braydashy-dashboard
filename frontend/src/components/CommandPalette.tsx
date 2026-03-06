@@ -106,11 +106,19 @@ export function CommandPalette({ open, onOpenChange, apps }: CommandPaletteProps
                                         `}
                                     >
                                         <div className="flex items-center gap-3">
-                                            {app.iconType === 'image' ? (
-                                                <img src={app.icon} className="w-6 h-6 object-contain rounded" alt="" />
+                                            {app.iconType === 'image' && app.icon ? (
+                                                <img
+                                                    src={app.icon}
+                                                    className="w-6 h-6 object-contain rounded shadow-sm"
+                                                    alt=""
+                                                    onError={(e) => {
+                                                        e.currentTarget.onerror = null;
+                                                        e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(app.name)}&background=random&color=fff&rounded=true&bold=true`;
+                                                    }}
+                                                />
                                             ) : (
-                                                <div className="w-6 h-6 flex items-center justify-center bg-card rounded border border-border">
-                                                    <span className="text-[10px] text-muted-foreground font-semibold">
+                                                <div className="w-6 h-6 flex items-center justify-center bg-primary/20 text-primary rounded border border-primary/20 shadow-inner">
+                                                    <span className="text-[10px] font-bold uppercase">
                                                         {app.name.substring(0, 1)}
                                                     </span>
                                                 </div>

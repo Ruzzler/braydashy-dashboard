@@ -12,6 +12,11 @@ RUN npm run build
 # Stage 2: Final Production Image
 # We use alpine for the final runner to keep the image size minimal and secure
 FROM node:20-alpine
+
+LABEL org.opencontainers.image.source="https://github.com/Ruzzler/braydashy-dashboard"
+LABEL org.opencontainers.image.description="A custom, beautiful, and highly dynamic unraid landing page dashboard"
+LABEL org.opencontainers.image.licenses="MIT"
+
 WORKDIR /app
 
 # Set production environment

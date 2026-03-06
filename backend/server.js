@@ -39,7 +39,13 @@ function readConfig() {
         appCardLayout: "grid",
         appCardSize: "medium",
         categories: [], apps: [], apiKeys: {},
-        glanceWidgets: []
+        glanceWidgets: [],
+        searchProviders: [
+            { id: 'google', name: 'Google', url: 'https://www.google.com/search?q={query}', prefix: '!g' },
+            { id: 'duckduckgo', name: 'DuckDuckGo', url: 'https://duckduckgo.com/?q={query}', prefix: '!ddg' },
+            { id: 'bing', name: 'Bing', url: 'https://www.bing.com/search?q={query}', prefix: '!bing' },
+            { id: 'youtube', name: 'YouTube', url: 'https://www.youtube.com/results?search_query={query}', prefix: '!yt' }
+        ]
     };
 
     try {
@@ -52,6 +58,7 @@ function readConfig() {
         if (!parsed.backgroundStyle) parsed.backgroundStyle = "orbs";
         if (!parsed.headerLayout) parsed.headerLayout = "classic";
         if (!parsed.defaultSearchProvider) parsed.defaultSearchProvider = "google";
+        if (!parsed.searchProviders) parsed.searchProviders = defaultConfig.searchProviders;
         if (parsed.enableWorkspaceMode === undefined) parsed.enableWorkspaceMode = false;
         if (!parsed.themeColor) parsed.themeColor = "zinc";
         if (!parsed.appCardLayout) parsed.appCardLayout = "grid";
