@@ -7,28 +7,17 @@ import { Label } from '@/components/ui/label';
 import { Settings, Save, Plus, Trash2, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { ImportWizardModal } from './ImportWizardModal';
 import { ThemePreview } from './ThemePreview';
+import { Config, AppItem, GlanceWidget } from '../types';
+import { SUPPORTED_APIS } from '../constants';
 
-export function SettingsModal({ config, onSave, onPreviewConfig }: { config: any, onSave: (newConfig: any) => void, onPreviewConfig?: (newConfig: any) => void }) {
+export function SettingsModal({ config, onSave, onPreviewConfig }: { config: Config, onSave: (newConfig: Config) => void, onPreviewConfig?: (newConfig: Config) => void }) {
     const [open, setOpen] = useState(false);
-    const [localConfig, setLocalConfig] = useState(JSON.parse(JSON.stringify(config)));
+    const [localConfig, setLocalConfig] = useState<Config>(JSON.parse(JSON.stringify(config)));
     const [testStatuses, setTestStatuses] = useState<{ [key: string]: 'idle' | 'testing' | 'success' | 'failed' }>({});
-
-    // Map keywords to specific API keys and available widgets
-    const SUPPORTED_APIS = [
-        { id: 'sonarr', keyword: 'sonarr', apiKeyMap: 'SONARR_API_KEY', label: 'Sonarr API Key', widgets: [{ id: 'queue', label: 'Queue' }, { id: 'wanted', label: 'Wanted' }] },
-        { id: 'radarr', keyword: 'radarr', apiKeyMap: 'RADARR_API_KEY', label: 'Radarr API Key', widgets: [{ id: 'queue', label: 'Queue' }, { id: 'wanted', label: 'Wanted' }] },
-        { id: 'tautulli', keyword: 'tautulli', apiKeyMap: 'TAUTULLI_API_KEY', label: 'Tautulli API Key', widgets: [{ id: 'streams', label: 'Streams' }, { id: 'bandwidth', label: 'Bandwidth' }] },
-        { id: 'adguard', keyword: 'adguard', apiKeyMap: 'ADGUARD_AUTH', label: 'AdGuard Auth (user:pass in base64)', widgets: [{ id: 'blocked_ratio', label: 'Blocked %' }, { id: 'total_queries', label: 'Total Queries' }] },
-        { id: 'overseerr', keyword: 'overseerr', apiKeyMap: 'OVERSEERR_API_KEY', label: 'Overseerr API Key', widgets: [{ id: 'pending_requests', label: 'Pending' }, { id: 'approved_requests', label: 'Approved' }] },
-        { id: 'speedtest', keyword: 'speedtest', apiKeyMap: 'SPEEDTEST_API_KEY', label: 'Speedtest Tracker API Key', widgets: [{ id: 'download', label: 'Download' }, { id: 'upload', label: 'Upload' }, { id: 'ping', label: 'Ping' }] },
-        { id: 'pihole', keyword: 'pihole', apiKeyMap: 'PIHOLE_API_KEY', label: 'Pi-hole API Token / WEBPASSWORD', widgets: [{ id: 'ads_blocked', label: 'Ads Blocked' }, { id: 'ads_percentage', label: 'Block Ratio' }] },
-        { id: 'qbittorrent', keyword: 'qbittorrent', apiKeyMap: 'QBITTORRENT_CREDS', label: 'qBittorrent (user:pass)', widgets: [{ id: 'dl_speed', label: 'DL Speed' }, { id: 'ul_speed', label: 'UL Speed' }] },
-        { id: 'proxmox', keyword: 'proxmox', apiKeyMap: 'PROXMOX_TOKEN', label: 'Proxmox Token (USER@REALM!TOKEN=UUID)', widgets: [{ id: 'cpu', label: 'Avg CPU Load' }, { id: 'ram', label: 'Avg RAM Usage' }] }
-    ];
 
     // Helper to find all supported apps the user currently has added
     const activeIntegrations = SUPPORTED_APIS.filter(api =>
-        localConfig.apps.some((a: any) => a.name.toLowerCase().includes(api.keyword) || a.id.includes(api.keyword))
+        localConfig.apps.some((a: AppItem) => a.name.toLowerCase().includes(api.keyword) || a.id.includes(api.keyword))
     );
 
     // Sync if config prop changes
@@ -139,12 +128,12 @@ export function SettingsModal({ config, onSave, onPreviewConfig }: { config: any
     };
 
     const addApp = () => {
-        const defaultCategory = localConfig.categories[0]?.id || '';
-        const newApp = {
+        const defaultCategory = localConfig.categories && localConfig.categories.length > 0 ? localConfig.categories[0].id : '';
+        const newApp: AppItem = {
             id: `app-${Date.now()}`,
             name: 'New App',
             url: 'http://',
-            iconType: 'image',
+            iconType: 'image' as const,
             icon: '',
             categoryId: defaultCategory
         };
@@ -173,7 +162,7 @@ export function SettingsModal({ config, onSave, onPreviewConfig }: { config: any
     };
 
     const addWidget = () => {
-        const newWidget = { id: `widget-${Date.now()}`, type: 'clock' };
+        const newWidget: GlanceWidget = { id: `widget-${Date.now()}`, type: 'clock' as const };
         setLocalConfig({ ...localConfig, glanceWidgets: [...(localConfig.glanceWidgets || []), newWidget] });
     };
 
@@ -194,7 +183,7 @@ export function SettingsModal({ config, onSave, onPreviewConfig }: { config: any
     const handleSearchProviderChange = (id: string, field: string, value: string) => {
         setLocalConfig({
             ...localConfig,
-            searchProviders: localConfig.searchProviders.map((p: any) => p.id === id ? { ...p, [field]: value } : p)
+            searchProviders: (localConfig.searchProviders || []).map((p: any) => p.id === id ? { ...p, [field]: value } : p)
         });
     };
 
@@ -209,7 +198,7 @@ export function SettingsModal({ config, onSave, onPreviewConfig }: { config: any
     const removeSearchProvider = (id: string) => {
         setLocalConfig({
             ...localConfig,
-            searchProviders: localConfig.searchProviders.filter((p: any) => p.id !== id)
+            searchProviders: (localConfig.searchProviders || []).filter((p: any) => p.id !== id)
         });
     };
 
@@ -221,24 +210,36 @@ export function SettingsModal({ config, onSave, onPreviewConfig }: { config: any
                 </button>
             </DialogTrigger>
 
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden bg-card border-border backdrop-blur-xl p-0 flex flex-col">
-                <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
+            <DialogContent className="max-w-4xl w-[95vw] md:w-full max-h-[90vh] overflow-hidden bg-card border-border backdrop-blur-xl p-0 flex flex-col shadow-2xl rounded-2xl">
+                <div className="p-4 md:p-6 shrink-0 border-b border-border/50">
                     <DialogHeader>
-                        <DialogTitle className="text-2xl">Dashboard Settings</DialogTitle>
-                        <DialogDescription>
-                            Manage your categories, app links, and API integrations in real-time.
-                        </DialogDescription>
+                        <div className="flex items-center justify-between">
+                            <div className="space-y-1">
+                                <DialogTitle className="text-xl md:text-2xl font-bold tracking-tight">Dashboard Settings</DialogTitle>
+                                <DialogDescription className="text-xs md:text-sm text-muted-foreground/80">
+                                    Manage categories, apps, and integrations.
+                                </DialogDescription>
+                            </div>
+                            <div className="bg-primary/20 text-primary text-[10px] font-bold px-2.5 py-1 rounded-full border border-primary/30 shadow-sm animate-pulse-slow">
+                                v0.8.7
+                            </div>
+                        </div>
                     </DialogHeader>
+                </div>
 
-                    <Tabs defaultValue="general" className="w-full mt-4">
-                        <TabsList className="flex w-full overflow-x-auto mb-8 justify-start h-auto flex-nowrap shrink-0 snap-x p-1 gap-1 bg-muted/30 sticky top-0 z-20 backdrop-blur-md border-b border-border/50 custom-scrollbar pb-2">
-                            <TabsTrigger value="general" className="snap-start shrink-0 px-4 py-2">General</TabsTrigger>
-                            <TabsTrigger value="appearance" className="snap-start shrink-0 px-4 py-2">Appearance</TabsTrigger>
-                            <TabsTrigger value="categories" className="snap-start shrink-0 px-4 py-2">Categories</TabsTrigger>
-                            <TabsTrigger value="apps" className="snap-start shrink-0 px-4 py-2">Apps</TabsTrigger>
-                            <TabsTrigger value="integrations" className="snap-start shrink-0 px-4 py-2">API Keys</TabsTrigger>
-                            <TabsTrigger value="widgets" className="snap-start shrink-0 px-4 py-2">Widgets</TabsTrigger>
+                <Tabs defaultValue="general" className="w-full flex-1 flex flex-col min-h-0 overflow-hidden">
+                    <div className="px-4 md:px-6 py-2 md:py-3 shrink-0 bg-muted/20 border-b border-border/40">
+                        <TabsList className="flex w-full overflow-x-auto justify-start h-auto flex-nowrap shrink-0 snap-x p-1 gap-1 bg-transparent custom-scrollbar-hide">
+                            <TabsTrigger value="general" className="snap-start shrink-0 px-3 md:px-4 py-1.5 md:py-2 text-xs md:text-sm transition-all focus-visible:ring-1">General</TabsTrigger>
+                            <TabsTrigger value="appearance" className="snap-start shrink-0 px-3 md:px-4 py-1.5 md:py-2 text-xs md:text-sm transition-all focus-visible:ring-1">Appearance</TabsTrigger>
+                            <TabsTrigger value="categories" className="snap-start shrink-0 px-3 md:px-4 py-1.5 md:py-2 text-xs md:text-sm transition-all focus-visible:ring-1">Categories</TabsTrigger>
+                            <TabsTrigger value="apps" className="snap-start shrink-0 px-3 md:px-4 py-1.5 md:py-2 text-xs md:text-sm transition-all focus-visible:ring-1">Apps</TabsTrigger>
+                            <TabsTrigger value="integrations" className="snap-start shrink-0 px-3 md:px-4 py-1.5 md:py-2 text-xs md:text-sm transition-all focus-visible:ring-1">API Keys</TabsTrigger>
+                            <TabsTrigger value="widgets" className="snap-start shrink-0 px-3 md:px-4 py-1.5 md:py-2 text-xs md:text-sm transition-all focus-visible:ring-1">Widgets</TabsTrigger>
                         </TabsList>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4 md:py-6 custom-scrollbar scroll-smooth">
 
                         {/* General Tab */}
                         <TabsContent value="general">
@@ -785,23 +786,23 @@ export function SettingsModal({ config, onSave, onPreviewConfig }: { config: any
                                 </CardContent>
                             </Card>
                         </TabsContent>
-                    </Tabs>
-                </div>
+                    </div>
+                </Tabs>
 
-                <div className="p-4 border-t border-border bg-background/50 backdrop-blur-md flex items-center justify-between shrink-0">
-                    <div className="text-xs text-muted-foreground hidden sm:block pl-2">
-                        Changes are previewed instantly. Click save to persist.
+                <div className="mt-auto p-4 border-t border-border bg-card/95 backdrop-blur-xl flex items-center justify-between shrink-0 shadow-[0_-8px_30px_rgb(0,0,0,0.12)] rounded-b-2xl z-20 sticky bottom-0">
+                    <div className="text-[10px] md:text-xs text-muted-foreground hidden sm:block pl-2 italic">
+                        Real-time preview enabled. Save to persist changes.
                     </div>
                     <div className="flex gap-3 w-full sm:w-auto">
                         <button
                             onClick={() => setOpen(false)}
-                            className="flex-1 sm:flex-none px-4 py-2 rounded-md border border-border hover:bg-muted transition-colors text-sm font-medium"
+                            className="flex-1 sm:flex-none px-4 py-2 rounded-xl border border-border hover:bg-muted transition-all active:scale-95 text-xs md:text-sm font-medium"
                         >
                             Cancel
                         </button>
                         <button
                             onClick={handleSave}
-                            className="flex-1 sm:flex-none bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-2 rounded-md flex items-center justify-center gap-2 transition-all shadow-lg shadow-primary/20 text-sm font-medium"
+                            className="flex-1 sm:flex-none bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-2 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg shadow-primary/25 text-xs md:text-sm font-bold"
                         >
                             <Save className="w-4 h-4" /> Save Changes
                         </button>

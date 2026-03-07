@@ -1,6 +1,6 @@
 {
     "name": "braydashy-dashboard",
-    "version": "0.8.6",
+    "version": "0.8.7",
     "description": "A sophisticated landing page dashboard for home servers",
     "main": "backend/server.js",
     "scripts": {

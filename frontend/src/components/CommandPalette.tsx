@@ -1,14 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Search, ExternalLink } from 'lucide-react';
-
-interface AppItem {
-    id: string;
-    name: string;
-    url: string;
-    iconType: 'image' | 'icon';
-    icon: string;
-}
+import { AppItem } from '../types';
 
 interface CommandPaletteProps {
     open: boolean;
@@ -59,6 +52,11 @@ export function CommandPalette({ open, onOpenChange, apps }: CommandPaletteProps
         setSelectedIndex(0);
     }, [query]);
 
+    // Helper to get initials (Unified with AppCard logic)
+    const getInitials = (name: string) => {
+        return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    };
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-xl p-0 overflow-hidden bg-white/10 dark:bg-black/40 backdrop-blur-2xl border-border/50 shadow-2xl gap-0">
@@ -75,7 +73,7 @@ export function CommandPalette({ open, onOpenChange, apps }: CommandPaletteProps
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        className="flex-1 bg-transparent border-none text-base outline-none placeholder:text-muted-foreground text-foreground"
+                        className="flex-1 bg-transparent border-none text-base outline-none placeholder:text-muted-foreground text-foreground pr-12 sm:pr-20"
                         autoComplete="off"
                         spellCheck="false"
                     />
@@ -106,23 +104,24 @@ export function CommandPalette({ open, onOpenChange, apps }: CommandPaletteProps
                                         `}
                                     >
                                         <div className="flex items-center gap-3">
-                                            {app.iconType === 'image' && app.icon ? (
-                                                <img
-                                                    src={app.icon}
-                                                    className="w-6 h-6 object-contain rounded shadow-sm"
-                                                    alt=""
-                                                    onError={(e) => {
-                                                        e.currentTarget.onerror = null;
-                                                        e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(app.name)}&background=random&color=fff&rounded=true&bold=true`;
-                                                    }}
-                                                />
-                                            ) : (
-                                                <div className="w-6 h-6 flex items-center justify-center bg-primary/20 text-primary rounded border border-primary/20 shadow-inner">
-                                                    <span className="text-[10px] font-bold uppercase">
-                                                        {app.name.substring(0, 1)}
-                                                    </span>
+                                            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center border border-border shrink-0 overflow-hidden group-hover:border-primary/30 transition-colors relative">
+                                                {app.iconType === 'image' && app.icon ? (
+                                                    <img
+                                                        src={app.icon}
+                                                        alt=""
+                                                        className="w-6 h-6 object-contain relative z-10"
+                                                        onError={(e) => {
+                                                            const target = e.currentTarget;
+                                                            target.style.display = 'none';
+                                                            const next = target.nextElementSibling;
+                                                            if (next) next.classList.remove('hidden');
+                                                        }}
+                                                    />
+                                                ) : null}
+                                                <div className={`${app.iconType === 'image' && app.icon ? 'hidden' : ''} w-full h-full flex items-center justify-center bg-primary/10 text-primary font-bold text-xs uppercase`}>
+                                                    {getInitials(app.name)}
                                                 </div>
-                                            )}
+                                            </div>
                                             <span className="font-medium">{app.name}</span>
                                         </div>
                                         <ExternalLink className={`w-4 h-4 ${isSelected ? 'opacity-100' : 'opacity-0'} transition-opacity`} />

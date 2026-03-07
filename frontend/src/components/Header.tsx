@@ -110,7 +110,7 @@ export function Header({ config, onSaveConfig = () => { }, onPreviewConfig = () 
                 </span>
             </h1>
             <div className={`mt-2 space-y-2 ${center ? 'flex flex-col items-center' : ''}`}>
-                <div className="h-5 relative overflow-hidden flex items-center justify-center">
+                <div className="min-h-[1.25rem] relative flex items-center justify-center">
                     <p
                         key={subtitleIndex}
                         className="text-muted-foreground text-sm md:text-base font-normal animate-in fade-in slide-in-from-bottom-2 duration-500"
@@ -149,8 +149,8 @@ export function Header({ config, onSaveConfig = () => { }, onPreviewConfig = () 
 
     const renderUtilities = () => (
         <div className="flex flex-wrap gap-3 sm:gap-4 items-center w-full md:w-auto justify-end">
-            <div className="relative w-full md:w-64 order-last md:order-none mt-4 md:mt-0">
-                <Icons.Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <div className="relative w-full md:w-64 order-last md:order-none mt-2 md:mt-0 group">
+                <Icons.Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                 <input
                     type="text"
                     placeholder="Search the web..."
@@ -187,7 +187,7 @@ export function Header({ config, onSaveConfig = () => { }, onPreviewConfig = () 
                             }
                         }
                     }}
-                    className="w-full py-2.5 px-4 pl-10 rounded-full border border-border bg-card text-foreground text-sm backdrop-blur-md transition-all focus:outline-none focus:border-ring focus:bg-white/10 dark:focus:bg-black/10 shadow-inner"
+                    className="w-full py-2 md:py-2.5 px-4 pl-10 rounded-full border border-border bg-card/60 text-foreground text-sm backdrop-blur-md transition-all focus:outline-none focus:border-primary focus:bg-background focus:ring-4 focus:ring-primary/10 shadow-lg"
                 />
             </div>
 

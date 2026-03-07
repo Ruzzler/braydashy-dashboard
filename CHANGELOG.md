@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.7] - 2026-03-06
+
+### Fixed
+- **Command Palette**: Resolved a visual bug where long search queries overlapped with the "ESC" and "Close" buttons by adding responsive right-padding.
+- **Header Subtext**: Fixed an issue where long "funny" subtitles were clipped on mobile devices; text now wraps correctly to multiple lines while maintaining animation fidelity.
+- **Infrastructure**: Added a dedicated `npm run test` script to the frontend to ensure UI components are verified by Vitest before every release.
+
+### Changed
+- **Phase 1 Finalization**: Verified and sealed all mobile-responsive UI improvements and theme preview logic.
+- **Mascot Roster locked**: Character selection is now focused on 4 high-quality mascots (BMO, Coffee Mug, Latte Art, French Press) to ensure maximum animation fidelity.
+- **Engineering Standards**: Upgraded the project to SDLC v2.3, integrating "Premium Design Integrity Audits" and mandatory manual verification loops.
+
 ## [0.8.6] - 2026-03-06
 
 ### Added

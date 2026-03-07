@@ -12,7 +12,7 @@ import sharp from 'sharp';
 import fs from 'fs';
 import path from 'path';
 
-const ARTIFACTS_DIR = process.argv[2] || 'C:\\Users\\admin\\.gemini\\antigravity\\brain\\9d5db423-77a2-4314-a4bc-56c80f47bf0d';
+const ARTIFACTS_DIR = process.argv[2] || './artifacts';
 const OUTPUT_DIR = path.resolve('frontend/public/pets');
 
 // Ensure output dir exists
