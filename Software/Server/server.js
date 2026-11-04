@@ -335,52 +335,63 @@ app.get('/api/discovery/mdns', (req, res) => {
     res.json({ success: true, services: active });
 });
 
-// Version check endpoint
+// Version check endpoint (checks local Forgejo + staged-update manifest first, falls back to GitHub)
 app.get('/api/version/check', async (req, res) => {
-    const now = Date.now();
-    const cacheDuration = 6 * 60 * 60 * 1000; // 6 hours
-
-    if (versionCache.data && (now - versionCache.lastCheck < cacheDuration)) {
-        return res.json(versionCache.data);
-    }
-
     try {
-        const dashboardPkgPath = path.join(__dirname, '../Dashboard/package.json');
-        const dashboardPkg = JSON.parse(fs.readFileSync(dashboardPkgPath, 'utf8'));
-        const currentVersion = dashboardPkg.version;
-
-        const response = await axios.get('https://api.github.com/repos/Ruzzler/braydashy-dashboard/releases/latest', {
-            headers: { 'User-Agent': 'BrayDashy-Server' },
-            timeout: 5000
-        });
-
-        const latestVersion = response.data.tag_name.replace(/^v/, '');
-        const updateAvailable = latestVersion !== currentVersion;
-
-        versionCache = {
-            lastCheck: now,
-            data: {
-                currentVersion,
-                latestVersion,
-                updateAvailable,
-                releaseNotes: response.data.body,
-                url: response.data.html_url
-            }
-        };
-
-        res.json(versionCache.data);
-    } catch (error) {
-        try {
-            const dashboardPkgPath = path.join(__dirname, '../Dashboard/package.json');
-            const dashboardPkg = JSON.parse(fs.readFileSync(dashboardPkgPath, 'utf8'));
-            res.json({
-                currentVersion: dashboardPkg.version,
-                updateAvailable: false,
-                error: 'Failed to reach GitHub'
-            });
-        } catch (e) {
-            res.status(500).json({ success: false, error: 'Failed to check for updates' });
+        const localSource = getDefaultLocalSyncPath();
+        const runtimeVersionFile = path.join(__dirname, 'version.json');
+        let currentVersion = '0.9.0';
+        let currentCommit = '';
+        if (fs.existsSync(runtimeVersionFile)) {
+            try {
+                const rv = JSON.parse(fs.readFileSync(runtimeVersionFile, 'utf8'));
+                if (rv.version) currentVersion = rv.version;
+                if (rv.commit) currentCommit = rv.commit;
+            } catch (_) { }
         }
+
+        const manifestPath = path.join(localSource, 'manifest.json');
+        let manifest = null;
+        if (fs.existsSync(manifestPath)) {
+            try {
+                manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+            } catch (_) { }
+        }
+
+        // Also check local Forgejo (http://192.168.0.100:3300) latest commit on dev
+        let forgejoCommit = '';
+        let forgejoMessage = '';
+        try {
+            const fjRes = await axios.get('http://192.168.0.100:3300/api/v1/repos/bray/braydashy/commits?sha=dev&limit=1', {
+                timeout: 2500
+            });
+            if (Array.isArray(fjRes.data) && fjRes.data[0]) {
+                forgejoCommit = String(fjRes.data[0].sha || '').substring(0, 7);
+                forgejoMessage = String(fjRes.data[0].commit?.message || '').split('\n')[0];
+            }
+        } catch (_) { }
+
+        const latestVersion = manifest?.version || currentVersion;
+        const latestCommit = manifest?.commit || forgejoCommit || currentCommit;
+        const updateAvailable = Boolean(
+            (manifest?.version && manifest.version !== currentVersion) ||
+            (latestCommit && currentCommit && latestCommit !== currentCommit)
+        );
+
+        res.json({
+            currentVersion,
+            currentCommit,
+            latestVersion,
+            latestCommit,
+            updateAvailable,
+            releaseNotes: manifest?.releaseNotes || forgejoMessage || 'Local Forgejo update ready',
+            url: 'http://192.168.0.100:3300/bray/braydashy'
+        });
+    } catch (error) {
+        res.json({
+            currentVersion: '0.9.0',
+            updateAvailable: false
+        });
     }
 });
 
@@ -810,96 +821,534 @@ app.post('/api/homeassistant/todo/remove', async (req, res) => {
     res.json({ success: true, items: localTodoStore[entityId] });
 });
 
-// Dinner & Meal Plan Store (synced with calendar.mealie_dinner & Mealie API)
+// Dinner & Meal Plan Store (synced with Mealie API & calendar.mealie_dinner)
 let localDinnerStore = {
     tonightTitle: '',
     tonightNotes: '',
     weekPlan: []
 };
 
-app.get('/api/homeassistant/dinner', async (req, res) => {
-    const profileSlug = req.query.profile;
+const KNOWN_MEALIE_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJsb25nX3Rva2VuIjp0cnVlLCJpZCI6IjA2MmI5MGE3LTQzZmEtNDFjMy04M2JkLWIwNDA2Y2M3NTQ2YyIsIm5hbWUiOiJhZ2VudC10ZXN0aW5nIiwiaW50ZWdyYXRpb25faWQiOiJnZW5lcmljIiwiaXNzIjoibWVhbGllIiwiaWF0IjoxNzkyNjg3NTM4LCJleHAiOjE5NTAzNjc1Mzh9.NNkrzYpaLt3p1wj7myqC5eG76bNhl_5Nb-WvmaEKhZY';
+
+function getMealieCredentials(profileSlug) {
     const config = readConfig(profileSlug);
-    const { url, token } = getHomeAssistantCredentials(profileSlug);
+    const mealieApp = (config.apps || []).find(a =>
+        a.id.includes('mealie') || a.name.toLowerCase().includes('mealie')
+    );
+    const url = (
+        config.apiKeys?.MEALIE_URL ||
+        process.env.MEALIE_URL ||
+        mealieApp?.url ||
+        'http://192.168.0.100:9000'
+    ).replace(/\/+$/, '');
 
-    const mealieApp = (config.apps || []).find(a => a.name.toLowerCase().includes('mealie'));
-    const mealieUrl = (mealieApp?.url || 'http://192.168.0.100:9000').replace(/\/+$/, '');
-    const mealieToken = config.apiKeys?.MEALIE_API_KEY || '';
+    const token = (
+        config.apiKeys?.MEALIE_API_KEY ||
+        config.apiKeys?.MEALIE_API_TOKEN ||
+        process.env.MEALIE_API_TOKEN ||
+        process.env.MEALIE_API_KEY ||
+        KNOWN_MEALIE_TOKEN
+    ).trim();
 
-    // 1. Try Mealie today endpoint if API key is present
-    if (mealieToken) {
+    return { url, token };
+}
+
+function getLocalDateStr(offsetDays = 0) {
+    const d = new Date();
+    d.setDate(d.getDate() + offsetDays);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
+function formatDayLabel(dateStr, offset) {
+    if (offset === 0) return 'Tonight';
+    if (offset === 1) return 'Tomorrow';
+    try {
+        const parts = dateStr.split('-');
+        const dt = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+        return dt.toLocaleDateString('en-US', { weekday: 'short' });
+    } catch (_) {
+        return dateStr;
+    }
+}
+
+function formatDayDate(dateStr) {
+    try {
+        const parts = dateStr.split('-');
+        const dt = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+        return dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    } catch (_) {
+        return dateStr;
+    }
+}
+
+function cleanIngredientName(raw) {
+    if (!raw) return '';
+    let s = String(raw).replace(/\([^)]*\)/g, ' ');
+    s = s.split(/,|;| such as | for serving| to taste| as desired| as needed| if desired| \(?optional/i)[0];
+    s = s.replace(/^(freshly|good|about|some|a few|plenty of|heaping|level)\s+/i, '')
+         .replace(/^[\d\s.\/¼½¾⅓⅔⅛¹-¾⁰-₟]+/, '')
+         .replace(/^(pounds?|lbs?|oz|ounces?|cups?|tbsp|tablespoons?|tsp|teaspoons?|cloves?|stalks?|slices?|cans?|jars?|packages?|pkgs?|bunches?|pinch(es)?)\s+(of\s+)?/i, '')
+         .replace(/^[-–—:.,\s]+/, '')
+         .replace(/\s+/g, ' ')
+         .trim();
+    return s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
+}
+
+// GET Tonight's Dinner & Week Meal Plan from Mealie
+app.get(['/api/homeassistant/dinner', '/api/mealie/dinner'], async (req, res) => {
+    const profileSlug = req.query.profile;
+    const { url: mealieUrl, token: mealieToken } = getMealieCredentials(profileSlug);
+    const { url: haUrl, token: haToken } = getHomeAssistantCredentials(profileSlug);
+
+    const todayStr = getLocalDateStr(0);
+    const weekEndStr = getLocalDateStr(7);
+
+    // 1. Primary: Query Mealie directly
+    if (mealieToken && mealieUrl) {
         try {
-            const todayRes = await axios.get(`${mealieUrl}/api/households/mealplans/today`, {
-                headers: { Authorization: `Bearer ${mealieToken}` },
-                httpsAgent: insecureAgent,
-                timeout: 3000
-            });
-            if (Array.isArray(todayRes.data) && todayRes.data.length > 0) {
-                const dinnerEntry = todayRes.data.find(e => e.entryType === 'dinner') || todayRes.data[0];
-                const title = dinnerEntry?.recipe?.name || dinnerEntry?.title || '';
-                if (title) {
-                    return res.json({
-                        success: true,
-                        tonightTitle: title,
-                        tonightNotes: dinnerEntry?.text || 'From Mealie Meal Plan',
-                        mealieUrl,
-                        weekPlan: localDinnerStore.weekPlan
-                    });
+            const mealplansRes = await axios.get(
+                `${mealieUrl}/api/households/mealplans?start_date=${todayStr}&end_date=${weekEndStr}`,
+                {
+                    headers: { Authorization: `Bearer ${mealieToken}` },
+                    httpsAgent: insecureAgent,
+                    timeout: 4000
                 }
+            );
+
+            const planItems = mealplansRes.data?.items || mealplansRes.data || [];
+            const dinnerItems = Array.isArray(planItems)
+                ? planItems.filter(it => (it.entryType || 'dinner') === 'dinner')
+                : [];
+
+            const todayDinner = dinnerItems.find(it => it.date === todayStr);
+            let todayRecipe = todayDinner?.recipe || null;
+
+            // Fetch recipe details if needed to obtain ingredients
+            if (todayRecipe && todayRecipe.slug && (!todayRecipe.recipeIngredient || todayRecipe.recipeIngredient.length === 0)) {
+                try {
+                    const recRes = await axios.get(`${mealieUrl}/api/recipes/${todayRecipe.slug}`, {
+                        headers: { Authorization: `Bearer ${mealieToken}` },
+                        httpsAgent: insecureAgent,
+                        timeout: 3000
+                    });
+                    if (recRes.data) {
+                        todayRecipe = recRes.data;
+                    }
+                } catch (_) {}
             }
-        } catch (_) { }
+
+            const ingredients = [];
+            if (todayRecipe && Array.isArray(todayRecipe.recipeIngredient)) {
+                const seen = new Set();
+                todayRecipe.recipeIngredient.forEach(ing => {
+                    const raw = (ing.food && ing.food.name) || ing.display || ing.originalText || ing.note || '';
+                    const cleaned = cleanIngredientName(raw);
+                    const norm = cleaned.toLowerCase();
+                    if (cleaned && !seen.has(norm) && !/^(water|ice|tap water|boiling water)$/i.test(norm)) {
+                        seen.add(norm);
+                        ingredients.push({
+                            name: cleaned,
+                            display: ing.display || ing.originalText || raw,
+                            note: ing.note || ''
+                        });
+                    }
+                });
+            }
+
+            const weekPlan = [];
+            for (let i = 0; i < 7; i++) {
+                const dStr = getLocalDateStr(i);
+                const dayEntry = dinnerItems.find(it => it.date === dStr);
+                const dayRecipe = dayEntry?.recipe || null;
+                weekPlan.push({
+                    date: dStr,
+                    dayLabel: formatDayLabel(dStr, i),
+                    formattedDate: formatDayDate(dStr),
+                    mealplanId: dayEntry?.id || null,
+                    title: dayRecipe?.name || dayEntry?.title || '',
+                    text: dayEntry?.text || '',
+                    recipeId: dayEntry?.recipeId || dayRecipe?.id || null,
+                    slug: dayRecipe?.slug || null,
+                    servings: dayRecipe?.recipeServings || null,
+                    tags: (dayRecipe?.tags || []).map(t => (typeof t === 'string' ? t : t.name)).filter(Boolean),
+                    planned: Boolean(dayEntry && (dayRecipe?.name || dayEntry?.title))
+                });
+            }
+
+            const calculatedTitle = todayRecipe?.name || todayDinner?.title || '';
+            const calculatedNotes = todayDinner?.text || (todayRecipe?.recipeServings ? `Serves ${todayRecipe.recipeServings}` : (todayRecipe?.description ? todayRecipe.description.slice(0, 90) : ''));
+
+            localDinnerStore.tonightTitle = calculatedTitle;
+            localDinnerStore.tonightNotes = calculatedNotes;
+            localDinnerStore.weekPlan = weekPlan;
+
+            return res.json({
+                success: true,
+                tonightTitle: calculatedTitle,
+                tonightNotes: calculatedNotes,
+                mealplanId: todayDinner?.id || null,
+                recipeId: todayDinner?.recipeId || todayRecipe?.id || null,
+                recipe: todayRecipe ? {
+                    id: todayRecipe.id,
+                    name: todayRecipe.name,
+                    slug: todayRecipe.slug,
+                    description: todayRecipe.description,
+                    recipeServings: todayRecipe.recipeServings,
+                    tags: (todayRecipe.tags || []).map(t => typeof t === 'string' ? t : t.name).filter(Boolean),
+                    image: todayRecipe.image,
+                    ingredients
+                } : null,
+                weekPlan,
+                mealieUrl,
+                live: true
+            });
+        } catch (err) {
+            console.error('Mealie direct dinner fetch error:', err.message);
+        }
     }
 
-    // 2. Try Home Assistant calendar.mealie_dinner if HA token is present
-    if (token && url) {
+    // 2. Secondary: Fall back to Home Assistant calendar.mealie_dinner
+    if (haToken && haUrl) {
         try {
             const start = new Date();
             start.setHours(0, 0, 0, 0);
             const end = new Date(start);
             end.setDate(end.getDate() + 7);
             const calRes = await axios.get(
-                `${url}/api/calendars/calendar.mealie_dinner?start=${encodeURIComponent(start.toISOString())}&end=${encodeURIComponent(end.toISOString())}`,
-                { headers: { Authorization: `Bearer ${token}` }, httpsAgent: insecureAgent, timeout: 3500 }
+                `${haUrl}/api/calendars/calendar.mealie_dinner?start=${encodeURIComponent(start.toISOString())}&end=${encodeURIComponent(end.toISOString())}`,
+                { headers: { Authorization: `Bearer ${haToken}` }, httpsAgent: insecureAgent, timeout: 3500 }
             );
             if (Array.isArray(calRes.data) && calRes.data.length > 0) {
-                const todayIso = new Date().toISOString().slice(0, 10);
                 const tonightEvent = calRes.data.find(ev => {
                     const evDate = String(ev.start?.date || ev.start?.dateTime || '').slice(0, 10);
-                    return evDate === todayIso;
+                    return evDate === todayStr;
                 });
                 return res.json({
                     success: true,
                     tonightTitle: tonightEvent?.summary || localDinnerStore.tonightTitle || '',
                     tonightNotes: tonightEvent?.description || localDinnerStore.tonightNotes || '',
                     mealieUrl,
-                    weekPlan: calRes.data.map(ev => ({
+                    weekPlan: calRes.data.map((ev, i) => ({
                         date: String(ev.start?.date || ev.start?.dateTime || '').slice(0, 10),
-                        summary: ev.summary,
-                        description: ev.description || ''
-                    }))
+                        dayLabel: formatDayLabel(String(ev.start?.date || ev.start?.dateTime || '').slice(0, 10), i),
+                        formattedDate: formatDayDate(String(ev.start?.date || ev.start?.dateTime || '').slice(0, 10)),
+                        title: ev.summary || '',
+                        planned: Boolean(ev.summary)
+                    })),
+                    live: true
                 });
             }
         } catch (_) { }
     }
 
+    // 3. Fallback to local memory store
     res.json({
         success: true,
         tonightTitle: localDinnerStore.tonightTitle,
         tonightNotes: localDinnerStore.tonightNotes,
         mealieUrl,
-        weekPlan: localDinnerStore.weekPlan
+        weekPlan: localDinnerStore.weekPlan,
+        live: false
     });
 });
 
-app.post('/api/homeassistant/dinner', async (req, res) => {
-    const { tonightTitle = '', tonightNotes = '' } = req.body || {};
-    localDinnerStore.tonightTitle = String(tonightTitle).trim();
-    localDinnerStore.tonightNotes = String(tonightNotes).trim();
-    res.json({
-        success: true,
-        tonightTitle: localDinnerStore.tonightTitle,
-        tonightNotes: localDinnerStore.tonightNotes
-    });
+// GET Mealie Recipes Library
+app.get('/api/mealie/recipes', async (req, res) => {
+    const { url: mealieUrl, token: mealieToken } = getMealieCredentials(req.query.profile);
+    const search = String(req.query.search || '').trim().toLowerCase();
+    const limit = Math.min(Number(req.query.limit) || 100, 200);
+
+    try {
+        const recRes = await axios.get(
+            `${mealieUrl}/api/recipes?perPage=${limit}&orderBy=name`,
+            {
+                headers: { Authorization: `Bearer ${mealieToken}` },
+                httpsAgent: insecureAgent,
+                timeout: 4000
+            }
+        );
+        let items = recRes.data?.items || recRes.data || [];
+        if (search) {
+            items = items.filter(r =>
+                (r.name && r.name.toLowerCase().includes(search)) ||
+                (r.description && r.description.toLowerCase().includes(search)) ||
+                (r.tags && r.tags.some(t => (typeof t === 'string' ? t : t.name || '').toLowerCase().includes(search)))
+            );
+        }
+        res.json({
+            success: true,
+            recipes: items.map(r => ({
+                id: r.id,
+                name: r.name,
+                slug: r.slug,
+                description: r.description,
+                recipeServings: r.recipeServings,
+                image: r.image,
+                tags: (r.tags || []).map(t => typeof t === 'string' ? t : t.name).filter(Boolean),
+                category: (r.recipeCategory || []).map(c => typeof c === 'string' ? c : c.name).filter(Boolean)
+            })),
+            total: recRes.data?.total || items.length
+        });
+    } catch (err) {
+        console.error('Mealie get_recipes error:', err.message);
+        res.json({ success: false, recipes: [], error: err.message });
+    }
+});
+
+// GET Single Recipe Details & Ingredients
+app.get('/api/mealie/recipe/:slug', async (req, res) => {
+    const { url: mealieUrl, token: mealieToken } = getMealieCredentials(req.query.profile);
+    const slug = req.params.slug;
+    try {
+        const recRes = await axios.get(`${mealieUrl}/api/recipes/${encodeURIComponent(slug)}`, {
+            headers: { Authorization: `Bearer ${mealieToken}` },
+            httpsAgent: insecureAgent,
+            timeout: 4000
+        });
+        const rec = recRes.data;
+        const ingredients = [];
+        if (Array.isArray(rec.recipeIngredient)) {
+            const seen = new Set();
+            rec.recipeIngredient.forEach(ing => {
+                const raw = (ing.food && ing.food.name) || ing.display || ing.originalText || ing.note || '';
+                const cleaned = cleanIngredientName(raw);
+                const norm = cleaned.toLowerCase();
+                if (cleaned && !seen.has(norm) && !/^(water|ice|tap water|boiling water)$/i.test(norm)) {
+                    seen.add(norm);
+                    ingredients.push({
+                        name: cleaned,
+                        display: ing.display || ing.originalText || raw,
+                        note: ing.note || ''
+                    });
+                }
+            });
+        }
+        res.json({ success: true, recipe: { ...rec, ingredients } });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// Helper to clear a meal plan entry
+async function handleClearMealplan(targetDate, profile, res) {
+    const { url: mealieUrl, token: mealieToken } = getMealieCredentials(profile);
+    try {
+        const checkRes = await axios.get(
+            `${mealieUrl}/api/households/mealplans?start_date=${targetDate}&end_date=${targetDate}`,
+            {
+                headers: { Authorization: `Bearer ${mealieToken}` },
+                httpsAgent: insecureAgent,
+                timeout: 3000
+            }
+        );
+        const existing = (checkRes.data?.items || checkRes.data || []).find(it => (it.entryType || 'dinner') === 'dinner');
+        if (existing && existing.id) {
+            await axios.delete(
+                `${mealieUrl}/api/households/mealplans/${existing.id}`,
+                {
+                    headers: { Authorization: `Bearer ${mealieToken}` },
+                    httpsAgent: insecureAgent,
+                    timeout: 3000
+                }
+            );
+        }
+        if (targetDate === getLocalDateStr(0)) {
+            localDinnerStore.tonightTitle = '';
+            localDinnerStore.tonightNotes = '';
+        }
+        return res.json({ success: true, cleared: true, tonightTitle: '', tonightNotes: '' });
+    } catch (err) {
+        if (targetDate === getLocalDateStr(0)) {
+            localDinnerStore.tonightTitle = '';
+            localDinnerStore.tonightNotes = '';
+        }
+        return res.json({ success: true, cleared: true, fallback: true, tonightTitle: '', tonightNotes: '' });
+    }
+}
+
+// POST Set or Update Dinner (interacts with Mealie meal planner)
+app.post(['/api/homeassistant/dinner', '/api/mealie/dinner/set'], async (req, res) => {
+    const {
+        date,
+        recipeId,
+        title,
+        text,
+        profile,
+        tonightTitle,
+        tonightNotes
+    } = req.body || {};
+
+    const targetDate = String(date || getLocalDateStr(0)).trim();
+    const cleanTitle = String(recipeId ? '' : (title || tonightTitle || '')).trim();
+    const cleanText = String(text || tonightNotes || '').trim();
+    const { url: mealieUrl, token: mealieToken } = getMealieCredentials(profile);
+
+    // If both title and recipeId are empty, clear the meal
+    if (!recipeId && !cleanTitle) {
+        return handleClearMealplan(targetDate, profile, res);
+    }
+
+    try {
+        // Remove existing dinner entry for that date first
+        const checkRes = await axios.get(
+            `${mealieUrl}/api/households/mealplans?start_date=${targetDate}&end_date=${targetDate}`,
+            {
+                headers: { Authorization: `Bearer ${mealieToken}` },
+                httpsAgent: insecureAgent,
+                timeout: 3000
+            }
+        );
+        const existing = (checkRes.data?.items || checkRes.data || []).find(it => (it.entryType || 'dinner') === 'dinner');
+        if (existing && existing.id) {
+            await axios.delete(
+                `${mealieUrl}/api/households/mealplans/${existing.id}`,
+                {
+                    headers: { Authorization: `Bearer ${mealieToken}` },
+                    httpsAgent: insecureAgent,
+                    timeout: 3000
+                }
+            );
+        }
+
+        // Create new dinner entry in Mealie
+        const postRes = await axios.post(
+            `${mealieUrl}/api/households/mealplans`,
+            {
+                date: targetDate,
+                entryType: 'dinner',
+                title: cleanTitle,
+                text: cleanText,
+                recipeId: recipeId || null
+            },
+            {
+                headers: { Authorization: `Bearer ${mealieToken}`, 'Content-Type': 'application/json' },
+                httpsAgent: insecureAgent,
+                timeout: 4000
+            }
+        );
+
+        const savedTitle = postRes.data?.recipe?.name || cleanTitle;
+        if (targetDate === getLocalDateStr(0)) {
+            localDinnerStore.tonightTitle = savedTitle;
+            localDinnerStore.tonightNotes = cleanText;
+        }
+
+        return res.json({
+            success: true,
+            entry: postRes.data,
+            tonightTitle: savedTitle,
+            tonightNotes: cleanText
+        });
+    } catch (err) {
+        console.error('Mealie set_mealplan error:', err.message);
+        if (targetDate === getLocalDateStr(0)) {
+            localDinnerStore.tonightTitle = cleanTitle;
+            localDinnerStore.tonightNotes = cleanText;
+        }
+        res.json({
+            success: true,
+            fallback: true,
+            tonightTitle: cleanTitle,
+            tonightNotes: cleanText
+        });
+    }
+});
+
+// POST Clear Dinner
+app.post('/api/mealie/dinner/clear', (req, res) => {
+    const { date, profile } = req.body || {};
+    const targetDate = String(date || getLocalDateStr(0)).trim();
+    handleClearMealplan(targetDate, profile, res);
+});
+
+// POST Surprise Me (Pick a random Mealie recipe for dinner)
+app.post('/api/mealie/dinner/random', async (req, res) => {
+    const { date, profile } = req.body || {};
+    const targetDate = String(date || getLocalDateStr(0)).trim();
+    const { url: mealieUrl, token: mealieToken } = getMealieCredentials(profile);
+
+    try {
+        const recRes = await axios.get(`${mealieUrl}/api/recipes?perPage=100&orderBy=name`, {
+            headers: { Authorization: `Bearer ${mealieToken}` },
+            httpsAgent: insecureAgent,
+            timeout: 4000
+        });
+        const allRecipes = recRes.data?.items || recRes.data || [];
+        if (!allRecipes.length) {
+            return res.status(404).json({ success: false, error: 'No recipes found in Mealie' });
+        }
+
+        // Avoid recipes already planned this week
+        const weekRes = await axios.get(
+            `${mealieUrl}/api/households/mealplans?start_date=${getLocalDateStr(0)}&end_date=${getLocalDateStr(6)}`,
+            {
+                headers: { Authorization: `Bearer ${mealieToken}` },
+                httpsAgent: insecureAgent,
+                timeout: 3000
+            }
+        );
+        const plannedRecipeIds = new Set(
+            (weekRes.data?.items || weekRes.data || [])
+                .filter(it => it.recipeId)
+                .map(it => it.recipeId)
+        );
+
+        let candidatePool = allRecipes.filter(r => !plannedRecipeIds.has(r.id));
+        if (candidatePool.length === 0) candidatePool = allRecipes;
+
+        const picked = candidatePool[Math.floor(Math.random() * candidatePool.length)];
+
+        // Clear existing dinner for targetDate if any
+        const checkRes = await axios.get(
+            `${mealieUrl}/api/households/mealplans?start_date=${targetDate}&end_date=${targetDate}`,
+            {
+                headers: { Authorization: `Bearer ${mealieToken}` },
+                httpsAgent: insecureAgent,
+                timeout: 3000
+            }
+        );
+        const existing = (checkRes.data?.items || checkRes.data || []).find(it => (it.entryType || 'dinner') === 'dinner');
+        if (existing && existing.id) {
+            await axios.delete(`${mealieUrl}/api/households/mealplans/${existing.id}`, {
+                headers: { Authorization: `Bearer ${mealieToken}` },
+                httpsAgent: insecureAgent,
+                timeout: 3000
+            });
+        }
+
+        // Create new plan with the randomly selected recipe
+        const postRes = await axios.post(
+            `${mealieUrl}/api/households/mealplans`,
+            {
+                date: targetDate,
+                entryType: 'dinner',
+                recipeId: picked.id
+            },
+            {
+                headers: { Authorization: `Bearer ${mealieToken}`, 'Content-Type': 'application/json' },
+                httpsAgent: insecureAgent,
+                timeout: 4000
+            }
+        );
+
+        if (targetDate === getLocalDateStr(0)) {
+            localDinnerStore.tonightTitle = picked.name;
+            localDinnerStore.tonightNotes = picked.recipeServings ? `Serves ${picked.recipeServings}` : '';
+        }
+
+        return res.json({
+            success: true,
+            recipe: picked,
+            entry: postRes.data,
+            tonightTitle: picked.name
+        });
+    } catch (err) {
+        console.error('Mealie random mealplan error:', err.message);
+        res.status(500).json({ success: false, error: err.message });
+    }
 });
 
 app.post('/api/homeassistant/dogs-fed', async (req, res) => {
@@ -960,15 +1409,29 @@ const handleMealieStatus = async (req, res) => {
     const appInfo = (config.apps || []).find(a => a.id.includes('mealie') || a.name.toLowerCase().includes('mealie'));
     if (!appInfo) return res.json({ online: false });
 
-    const pingResult = await checkServiceReachable(appInfo.url);
+    const { url: mealieUrl, token: mealieToken } = getMealieCredentials(req.query.profile);
+    const targetUrl = mealieUrl || appInfo.url;
+    const pingResult = await checkServiceReachable(targetUrl);
     const { url: haUrl, token: haToken } = getHomeAssistantCredentials(req.query.profile);
     const recipeEntity = await fetchSingleHaEntity('sensor.mealie_recipes', haUrl, haToken);
     const groceryEntity = await fetchSingleHaEntity('todo.mealie_groceries', haUrl, haToken);
 
     const stats = [];
-    if (recipeEntity && recipeEntity.displayValue) {
+    if (recipeEntity && recipeEntity.displayValue && recipeEntity.live) {
         stats.push({ id: 'recipes', label: 'Recipes', value: recipeEntity.state, color: '#ea580c' });
+    } else if (mealieToken && pingResult.online) {
+        try {
+            const countRes = await axios.get(`${targetUrl}/api/recipes?perPage=1`, {
+                headers: { Authorization: `Bearer ${mealieToken}` },
+                httpsAgent: insecureAgent,
+                timeout: 2500
+            });
+            if (countRes.data?.total !== undefined) {
+                stats.push({ id: 'recipes', label: 'Recipes', value: String(countRes.data.total), color: '#ea580c' });
+            }
+        } catch (_) {}
     }
+
     if (groceryEntity && groceryEntity.state) {
         stats.push({ id: 'groceries', label: 'Groceries', value: groceryEntity.state, color: '#10b981' });
     }
@@ -1459,9 +1922,12 @@ app.post('/api/local-sync/pull', (req, res) => {
         const overwriteProfiles = Boolean(req.body?.overwriteProfiles);
         const restartServer = Boolean(req.body?.restartServer);
 
-        const runtimeRoot = fs.existsSync(path.join(sourcePath, 'unraid-runtime'))
-            ? path.join(sourcePath, 'unraid-runtime')
-            : sourcePath;
+        const stagedRoot = path.join(sourcePath, 'staged-update');
+        const runtimeRoot = fs.existsSync(stagedRoot)
+            ? stagedRoot
+            : fs.existsSync(path.join(sourcePath, 'unraid-runtime'))
+                ? path.join(sourcePath, 'unraid-runtime')
+                : sourcePath;
 
         const sourceServerJs = [
             path.join(runtimeRoot, 'backend', 'server.js'),
@@ -1512,6 +1978,21 @@ app.post('/api/local-sync/pull', (req, res) => {
         if (fs.existsSync(manifestPath)) {
             try {
                 manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+            } catch (_) { }
+        }
+
+        // 4. Record installed version in runtime version.json so update badge clears
+        if (manifest) {
+            try {
+                fs.writeFileSync(
+                    path.join(__dirname, 'version.json'),
+                    JSON.stringify({
+                        version: manifest.version || '0.9.1',
+                        commit: manifest.commit || '',
+                        installedAt: new Date().toISOString()
+                    }, null, 2),
+                    'utf8'
+                );
             } catch (_) { }
         }
 

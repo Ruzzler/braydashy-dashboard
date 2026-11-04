@@ -30,11 +30,47 @@ interface TodoItem {
     status: 'needs_action' | 'completed';
 }
 
+interface MealIngredient {
+    name: string;
+    display?: string;
+    note?: string;
+}
+
+interface MealieRecipeItem {
+    id: string;
+    name: string;
+    slug: string;
+    description?: string;
+    recipeServings?: number;
+    image?: string;
+    tags?: string[];
+    category?: string[];
+    ingredients?: MealIngredient[];
+}
+
+interface MealPlanDay {
+    date: string;
+    dayLabel: string;
+    formattedDate: string;
+    mealplanId?: number | null;
+    title: string;
+    text?: string;
+    recipeId?: string | null;
+    slug?: string | null;
+    servings?: number | null;
+    tags?: string[];
+    planned: boolean;
+}
+
 interface DinnerState {
     tonightTitle: string;
     tonightNotes: string;
+    mealplanId?: number | null;
+    recipeId?: string | null;
+    recipe?: MealieRecipeItem | null;
     mealieUrl: string;
-    weekPlan: Array<{ date: string; summary: string; description?: string }>;
+    weekPlan: MealPlanDay[];
+    live?: boolean;
 }
 
 interface SanctuaryCardProps {
@@ -372,21 +408,61 @@ export function SanctuaryDashboard({
     const [editingItemUid, setEditingItemUid] = useState<string | null>(null);
     const [editingItemText, setEditingItemText] = useState('');
 
-    // Dinner Modal & State
+    // Dinner Modal & State (Mealie Integration)
     const [dinnerModalOpen, setDinnerModalOpen] = useState(false);
     const [dinnerState, setDinnerState] = useState<DinnerState>({
         tonightTitle: '',
         tonightNotes: '',
+        mealplanId: null,
+        recipeId: null,
+        recipe: null,
         mealieUrl: 'http://192.168.0.100:9000',
-        weekPlan: []
+        weekPlan: [],
+        live: false
     });
     const [dinnerInputTitle, setDinnerInputTitle] = useState('');
     const [dinnerInputNotes, setDinnerInputNotes] = useState('');
+    const [selectedDayDate, setSelectedDayDate] = useState<string>('');
+    const [mealieRecipes, setMealieRecipes] = useState<MealieRecipeItem[]>([]);
+    const [loadingRecipes, setLoadingRecipes] = useState(false);
+    const [recipeSearch, setRecipeSearch] = useState('');
+    const [selectedRecipeTag, setSelectedRecipeTag] = useState<string>('all');
+    const [activeRecipeDetails, setActiveRecipeDetails] = useState<MealieRecipeItem | null>(null);
+    const [loadingRecipeDetails, setLoadingRecipeDetails] = useState(false);
+    const [isSavingDinner, setIsSavingDinner] = useState(false);
+    const [dinnerModalTab, setDinnerModalTab] = useState<'recipes' | 'custom'>('recipes');
+    const [versionInfo, setVersionInfo] = useState<{ updateAvailable?: boolean; latestVersion?: string; currentVersion?: string } | null>(null);
+    const [applyingUpdate, setApplyingUpdate] = useState(false);
 
     useEffect(() => {
         const timer = setInterval(() => setNow(new Date()), 30000);
-        return () => clearInterval(timer);
+        const checkVer = async () => {
+            try {
+                const res = await fetch('/api/version/check');
+                if (res.ok) setVersionInfo(await res.json());
+            } catch (_) { }
+        };
+        checkVer();
+        const verTimer = setInterval(checkVer, 15000);
+        return () => {
+            clearInterval(timer);
+            clearInterval(verTimer);
+        };
     }, []);
+
+    const handleApplyUpdate = async () => {
+        setApplyingUpdate(true);
+        try {
+            await fetch('/api/local-sync/pull', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ restartServer: false })
+            });
+            setTimeout(() => window.location.reload(), 600);
+        } catch (_) {
+            setApplyingUpdate(false);
+        }
+    };
 
     // Fetch Grocery List (todo.mealie_groceries)
     const fetchGroceries = useCallback(async () => {
@@ -401,7 +477,7 @@ export function SanctuaryDashboard({
         } catch (_) { }
     }, [currentProfile]);
 
-    // Fetch Tonight's Dinner (calendar.mealie_dinner / Mealie)
+    // Fetch Tonight's Dinner & Week Plan (Mealie API + calendar.mealie_dinner)
     const fetchDinner = useCallback(async () => {
         try {
             const res = await fetch(`/api/homeassistant/dinner?profile=${encodeURIComponent(currentProfile)}`);
@@ -410,14 +486,45 @@ export function SanctuaryDashboard({
                 setDinnerState({
                     tonightTitle: data.tonightTitle || '',
                     tonightNotes: data.tonightNotes || '',
+                    mealplanId: data.mealplanId || null,
+                    recipeId: data.recipeId || null,
+                    recipe: data.recipe || null,
                     mealieUrl: data.mealieUrl || 'http://192.168.0.100:9000',
-                    weekPlan: data.weekPlan || []
+                    weekPlan: data.weekPlan || [],
+                    live: data.live
                 });
                 setDinnerInputTitle(data.tonightTitle || '');
                 setDinnerInputNotes(data.tonightNotes || '');
+                if (!selectedDayDate && Array.isArray(data.weekPlan) && data.weekPlan.length > 0) {
+                    setSelectedDayDate(data.weekPlan[0].date);
+                }
             }
         } catch (_) { }
+    }, [currentProfile, selectedDayDate]);
+
+    // Fetch All Mealie Recipes for the Interactive Picker
+    const fetchMealieRecipes = useCallback(async () => {
+        setLoadingRecipes(true);
+        try {
+            const res = await fetch(`/api/mealie/recipes?limit=100&profile=${encodeURIComponent(currentProfile)}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (Array.isArray(data.recipes)) {
+                    setMealieRecipes(data.recipes);
+                }
+            }
+        } catch (_) { }
+        finally {
+            setLoadingRecipes(false);
+        }
     }, [currentProfile]);
+
+    useEffect(() => {
+        if (dinnerModalOpen) {
+            fetchMealieRecipes();
+            fetchDinner();
+        }
+    }, [dinnerModalOpen, fetchMealieRecipes, fetchDinner]);
 
     // Fetch Home Assistant entities for header & app badges
     useEffect(() => {
@@ -560,31 +667,176 @@ export function SanctuaryDashboard({
         } catch (_) { }
     };
 
-    const handleSaveDinner = async (titleOverride?: string, notesOverride?: string) => {
-        const nextTitle = titleOverride !== undefined ? titleOverride : dinnerInputTitle;
-        const nextNotes = notesOverride !== undefined ? notesOverride : dinnerInputNotes;
+    // Active Day in the 7-day meal plan
+    const activeDay = useMemo(() => {
+        if (!dinnerState.weekPlan.length) return null;
+        return dinnerState.weekPlan.find(d => d.date === selectedDayDate) || dinnerState.weekPlan[0];
+    }, [dinnerState.weekPlan, selectedDayDate]);
+
+    // Fetch Recipe Details & Ingredients when viewing an active recipe
+    useEffect(() => {
+        if (!dinnerModalOpen) return;
+        const currentRecipeSlug = (activeDay && activeDay.date === dinnerState.weekPlan[0]?.date && dinnerState.recipe?.slug)
+            ? dinnerState.recipe.slug
+            : activeDay?.slug;
+
+        if (currentRecipeSlug) {
+            if (activeDay?.date === dinnerState.weekPlan[0]?.date && dinnerState.recipe?.ingredients) {
+                setActiveRecipeDetails(dinnerState.recipe);
+                return;
+            }
+            setLoadingRecipeDetails(true);
+            fetch(`/api/mealie/recipe/${encodeURIComponent(currentRecipeSlug)}?profile=${encodeURIComponent(currentProfile)}`)
+                .then(r => r.ok ? r.json() : null)
+                .then(data => {
+                    if (data?.recipe) {
+                        setActiveRecipeDetails(data.recipe);
+                    }
+                })
+                .catch(() => {})
+                .finally(() => setLoadingRecipeDetails(false));
+        } else {
+            setActiveRecipeDetails(null);
+        }
+    }, [dinnerModalOpen, activeDay, dinnerState.recipe, dinnerState.weekPlan, currentProfile]);
+
+    const isIngredientInGroceries = useCallback((ingName: string) => {
+        const norm = ingName.toLowerCase().trim();
+        return groceryItems.some(item =>
+            item.status === 'needs_action' &&
+            (item.summary.toLowerCase().includes(norm) || norm.includes(item.summary.toLowerCase()))
+        );
+    }, [groceryItems]);
+
+    const handleToggleIngredientGrocery = async (ingName: string) => {
+        const norm = ingName.toLowerCase().trim();
+        const existing = groceryItems.find(item =>
+            item.summary.toLowerCase().includes(norm) || norm.includes(item.summary.toLowerCase())
+        );
+
+        if (existing) {
+            if (existing.status === 'needs_action') {
+                await handleRemoveGroceryItem(existing);
+            } else {
+                await handleToggleGroceryStatus(existing);
+            }
+        } else {
+            await handleAddGroceryItem(ingName);
+        }
+    };
+
+    const handleSelectMealieRecipe = async (recipe: MealieRecipeItem, targetDate?: string) => {
+        setIsSavingDinner(true);
+        const dateToSet = targetDate || selectedDayDate || dinnerState.weekPlan[0]?.date || '';
         try {
-            const res = await fetch('/api/homeassistant/dinner', {
+            await fetch('/api/mealie/dinner/set', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    tonightTitle: nextTitle,
-                    tonightNotes: nextNotes
+                    date: dateToSet,
+                    recipeId: recipe.id,
+                    profile: currentProfile
                 })
             });
-            if (res.ok) {
-                const data = await res.json();
-                setDinnerState(prev => ({
-                    ...prev,
-                    tonightTitle: data.tonightTitle,
-                    tonightNotes: data.tonightNotes
-                }));
-                setDinnerInputTitle(data.tonightTitle);
-                setDinnerInputNotes(data.tonightNotes);
-                setDinnerModalOpen(false);
-            }
-        } catch (_) { }
+            await fetchDinner();
+        } catch (_) {}
+        finally {
+            setIsSavingDinner(false);
+        }
     };
+
+    const handleSaveDinner = async (titleOverride?: string, notesOverride?: string) => {
+        const nextTitle = titleOverride !== undefined ? titleOverride : dinnerInputTitle;
+        const nextNotes = notesOverride !== undefined ? notesOverride : dinnerInputNotes;
+        if (!nextTitle.trim()) return;
+        setIsSavingDinner(true);
+        const targetDate = selectedDayDate || dinnerState.weekPlan[0]?.date || '';
+        try {
+            await fetch('/api/mealie/dinner/set', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    date: targetDate,
+                    title: nextTitle.trim(),
+                    text: nextNotes.trim(),
+                    profile: currentProfile
+                })
+            });
+            await fetchDinner();
+            setDinnerInputTitle('');
+            setDinnerInputNotes('');
+        } catch (_) { }
+        finally {
+            setIsSavingDinner(false);
+        }
+    };
+
+    const handleClearDinnerForDate = async (targetDate?: string, mealplanId?: number | null) => {
+        setIsSavingDinner(true);
+        const dateToClear = targetDate || selectedDayDate || dinnerState.weekPlan[0]?.date || '';
+        try {
+            await fetch('/api/mealie/dinner/clear', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    date: dateToClear,
+                    mealplanId: mealplanId || activeDay?.mealplanId,
+                    profile: currentProfile
+                })
+            });
+            await fetchDinner();
+            setActiveRecipeDetails(null);
+        } catch (_) {}
+        finally {
+            setIsSavingDinner(false);
+        }
+    };
+
+    const handleRandomDinner = async (targetDate?: string) => {
+        setIsSavingDinner(true);
+        const dateToSet = targetDate || selectedDayDate || dinnerState.weekPlan[0]?.date || '';
+        try {
+            await fetch('/api/mealie/dinner/random', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    date: dateToSet,
+                    profile: currentProfile
+                })
+            });
+            await fetchDinner();
+        } catch (_) {}
+        finally {
+            setIsSavingDinner(false);
+        }
+    };
+
+    const filteredRecipes = useMemo(() => {
+        let list = mealieRecipes;
+        if (recipeSearch.trim()) {
+            const query = recipeSearch.toLowerCase().trim();
+            list = list.filter(r =>
+                r.name.toLowerCase().includes(query) ||
+                (r.description && r.description.toLowerCase().includes(query)) ||
+                (r.tags && r.tags.some(t => t.toLowerCase().includes(query)))
+            );
+        }
+        if (selectedRecipeTag !== 'all') {
+            list = list.filter(r =>
+                (r.tags && r.tags.some(t => t.toLowerCase() === selectedRecipeTag.toLowerCase())) ||
+                (r.category && r.category.some(c => c.toLowerCase() === selectedRecipeTag.toLowerCase()))
+            );
+        }
+        return list;
+    }, [mealieRecipes, recipeSearch, selectedRecipeTag]);
+
+    const availableRecipeTags = useMemo(() => {
+        const set = new Set<string>();
+        mealieRecipes.forEach(r => {
+            (r.tags || []).forEach(t => set.add(t));
+        });
+        return Array.from(set).slice(0, 8);
+    }, [mealieRecipes]);
 
     const handleLogDogsFed = async () => {
         try {
@@ -797,6 +1049,18 @@ export function SanctuaryDashboard({
 
                     {/* Right: Unified 36px (h-9) Control Bar */}
                     <div className="flex items-center gap-2 flex-shrink-0">
+                        {versionInfo?.updateAvailable && (
+                            <button
+                                type="button"
+                                onClick={handleApplyUpdate}
+                                disabled={applyingUpdate}
+                                title="Click to apply the latest local Forgejo update"
+                                className="h-9 px-3.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-sm transition-all animate-pulse"
+                            >
+                                <Icons.ArrowDownCircle className="w-3.5 h-3.5" />
+                                <span>{applyingUpdate ? 'Updating...' : `Update Ready (${versionInfo.latestVersion || 'New'})`}</span>
+                            </button>
+                        )}
                         {/* Unified Profile Selector + Pin Capsule */}
                         <div className={`h-9 inline-flex items-center rounded-full border shadow-sm overflow-hidden ${
                             theme === 'velvet'
@@ -1378,7 +1642,7 @@ export function SanctuaryDashboard({
             {/* POPUP MODAL 2: TONIGHT'S DINNER & MEALIE PLANNER              */}
             {/* ============================================================= */}
             <Dialog open={dinnerModalOpen} onOpenChange={setDinnerModalOpen}>
-                <DialogContent className={`modal-theme-${theme} font-jakarta max-w-lg overflow-hidden flex flex-col gap-0 p-0 bg-background border-border shadow-2xl text-foreground`}>
+                <DialogContent className={`modal-theme-${theme} font-jakarta max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col gap-0 p-0 bg-background border-border shadow-2xl text-foreground`}>
                     <DialogHeader className="p-5 pb-4 border-b border-border/60 bg-secondary/40">
                         <div className="flex items-center justify-between pr-6">
                             <div className="flex items-center gap-3">
@@ -1386,17 +1650,23 @@ export function SanctuaryDashboard({
                                     <Icons.UtensilsCrossed className="w-5 h-5" />
                                 </div>
                                 <div>
-                                    <DialogTitle className="text-xl font-bold">Tonight's Dinner</DialogTitle>
-                                    <DialogDescription className="text-xs text-muted-foreground">
-                                        Set what's for dinner tonight or open Mealie's recipe planner
+                                    <div className="flex items-center gap-2">
+                                        <DialogTitle className="text-xl font-bold">Meal Planner & Dinner</DialogTitle>
+                                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 inline-flex items-center gap-1">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                                            Mealie Live
+                                        </span>
+                                    </div>
+                                    <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                                        Plan dinners, pick from your saved recipes, and sync ingredients with your grocery list.
                                     </DialogDescription>
                                 </div>
                             </div>
                             <a
-                                href={dinnerState.mealieUrl}
+                                href={dinnerState.mealieUrl ? `${dinnerState.mealieUrl}/household/mealplan/planner/view` : 'http://192.168.0.100:9000/household/mealplan/planner/view'}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="px-3 py-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-all inline-flex items-center gap-1.5 shadow-sm"
+                                className="px-3.5 py-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-all inline-flex items-center gap-1.5 shadow-sm"
                             >
                                 <span>Open Mealie</span>
                                 <Icons.ArrowUpRight className="w-3.5 h-3.5" />
@@ -1404,80 +1674,393 @@ export function SanctuaryDashboard({
                         </div>
                     </DialogHeader>
 
-                    <div className="p-5 space-y-4">
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                                Tonight's Meal
-                            </label>
-                            <Input
-                                value={dinnerInputTitle}
-                                onChange={(e) => setDinnerInputTitle(e.target.value)}
-                                placeholder="e.g. Chicken Stir Fry, Tacos, Homemade Pizza..."
-                                className="bg-card h-10 text-sm font-semibold"
-                                autoFocus
-                            />
+                    <div className="p-5 space-y-4 flex-1 overflow-y-auto">
+                        {/* 1. 7-DAY MEAL SCHEDULE STRIP */}
+                        <div className="space-y-1.5">
+                            <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                <span>7-Day Schedule</span>
+                                <span className="text-[11px] font-normal lowercase opacity-75">Click a day to view or change</span>
+                            </div>
+                            <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5">
+                                {dinnerState.weekPlan.map((day) => {
+                                    const isSelected = (selectedDayDate || dinnerState.weekPlan[0]?.date) === day.date;
+                                    return (
+                                        <button
+                                            key={day.date}
+                                            type="button"
+                                            onClick={() => setSelectedDayDate(day.date)}
+                                            className={`p-2 rounded-xl text-left border transition-all flex flex-col justify-between min-h-[64px] ${
+                                                isSelected
+                                                    ? 'bg-primary/10 border-primary text-foreground ring-1 ring-primary shadow-sm'
+                                                    : 'bg-card border-border/70 hover:border-primary/50 text-muted-foreground hover:text-foreground'
+                                            }`}
+                                        >
+                                            <div className="flex items-center justify-between w-full">
+                                                <span className={`text-[11px] font-bold ${isSelected ? 'text-primary' : ''}`}>
+                                                    {day.dayLabel}
+                                                </span>
+                                                {day.planned && (
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" title="Meal planned" />
+                                                )}
+                                            </div>
+                                            <span className="text-[10px] opacity-75">{day.formattedDate.split(', ')[1] || day.formattedDate}</span>
+                                            <span className={`text-[11px] font-semibold truncate mt-1 w-full ${day.planned ? 'text-foreground' : 'italic opacity-60'}`}>
+                                                {day.title || 'Empty'}
+                                            </span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         </div>
 
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                                Prep Notes or Side Dish (Optional)
-                            </label>
-                            <Input
-                                value={dinnerInputNotes}
-                                onChange={(e) => setDinnerInputNotes(e.target.value)}
-                                placeholder="e.g. Defrost chicken at 4pm · Serve with jasmine rice"
-                                className="bg-card h-9 text-xs"
-                            />
-                        </div>
+                        {/* 2. ACTIVE DAY CARD: CURRENT MEAL & INGREDIENTS */}
+                        <div className="p-4 rounded-2xl bg-card border border-border shadow-sm space-y-3">
+                            <div className="flex items-start justify-between gap-3">
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs font-bold uppercase tracking-wider text-primary">
+                                            {activeDay?.dayLabel === 'Tonight' ? "Tonight's Dinner" : `${activeDay?.dayLabel}'s Dinner`} ({activeDay?.formattedDate})
+                                        </span>
+                                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                                            activeDay?.planned
+                                                ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+                                                : 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
+                                        }`}>
+                                            {activeDay?.planned ? 'Planned' : 'Not Set'}
+                                        </span>
+                                    </div>
+                                    <div className="font-serif-editorial text-2xl font-bold mt-1 text-foreground">
+                                        {activeDay?.title || 'What should we make for dinner?'}
+                                    </div>
+                                    {activeDay?.text && (
+                                        <p className="text-xs text-muted-foreground mt-0.5">{activeDay.text}</p>
+                                    )}
+                                </div>
 
-                        {/* 1-Click Quick Dinner Ideas */}
-                        <div className="space-y-2">
-                            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                                1-Click Quick Ideas
-                            </span>
-                            <div className="flex flex-wrap gap-1.5">
-                                {QUICK_DINNER_SUGGESTIONS.map(idea => (
+                                <div className="flex items-center gap-2 flex-shrink-0">
                                     <button
-                                        key={idea}
                                         type="button"
-                                        onClick={() => {
-                                            setDinnerInputTitle(idea);
-                                            handleSaveDinner(idea, dinnerInputNotes || 'Planned from Home Hub');
-                                        }}
-                                        className="text-xs px-3 py-1.5 rounded-xl border border-border bg-card hover:border-primary hover:text-primary transition-colors font-medium"
+                                        onClick={() => handleRandomDinner(activeDay?.date)}
+                                        disabled={isSavingDinner}
+                                        title="Pick a random recipe from your Mealie library"
+                                        className="h-8 px-3 rounded-xl border border-border bg-secondary hover:bg-secondary/80 text-xs font-semibold inline-flex items-center gap-1.5 transition-colors shadow-sm"
                                     >
-                                        {idea}
+                                        <Icons.Dices className="w-3.5 h-3.5 text-primary" />
+                                        <span>Surprise Me</span>
                                     </button>
-                                ))}
+                                    {activeDay?.planned && (
+                                        <button
+                                            type="button"
+                                            onClick={() => handleClearDinnerForDate(activeDay.date, activeDay.mealplanId)}
+                                            disabled={isSavingDinner}
+                                            title="Clear dinner for this night"
+                                            className="h-8 px-2.5 rounded-xl border border-rose-500/20 text-rose-500 hover:bg-rose-500/10 text-xs font-semibold inline-flex items-center gap-1 transition-colors"
+                                        >
+                                            <Icons.Trash2 className="w-3.5 h-3.5" />
+                                            <span>Clear</span>
+                                        </button>
+                                    )}
+                                </div>
                             </div>
+
+                            {/* Tags / Servings */}
+                            {(activeRecipeDetails?.recipeServings || (activeRecipeDetails?.tags && activeRecipeDetails.tags.length > 0)) && (
+                                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                                    {Boolean(activeRecipeDetails?.recipeServings) && (
+                                        <span className="text-[11px] px-2 py-0.5 rounded-md bg-secondary text-secondary-foreground font-medium inline-flex items-center gap-1">
+                                            <Icons.Users className="w-3 h-3 text-muted-foreground" />
+                                            {activeRecipeDetails?.recipeServings} servings
+                                        </span>
+                                    )}
+                                    {(activeRecipeDetails?.tags || []).slice(0, 4).map(tag => (
+                                        <span key={tag} className="text-[11px] px-2 py-0.5 rounded-md bg-secondary text-muted-foreground font-medium">
+                                            #{tag}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Interactive Ingredients -> Add to Grocery List */}
+                            {loadingRecipeDetails ? (
+                                <div className="text-xs text-muted-foreground flex items-center gap-2 pt-2">
+                                    <Icons.Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    <span>Fetching ingredients from Mealie...</span>
+                                </div>
+                            ) : (activeRecipeDetails?.ingredients && activeRecipeDetails.ingredients.length > 0) ? (
+                                <div className="pt-2 border-t border-border/60 space-y-2">
+                                    <div className="flex items-center justify-between text-xs">
+                                        <span className="font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                                            <Icons.ShoppingBag className="w-3.5 h-3.5 text-primary" />
+                                            Ingredients (Tap to add to Grocery List)
+                                        </span>
+                                        <span className="text-[11px] text-muted-foreground">
+                                            {activeRecipeDetails.ingredients.length} items
+                                        </span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {activeRecipeDetails.ingredients.map(ing => {
+                                            const onList = isIngredientInGroceries(ing.name);
+                                            return (
+                                                <button
+                                                    key={ing.name}
+                                                    type="button"
+                                                    onClick={() => handleToggleIngredientGrocery(ing.name)}
+                                                    className={`text-xs px-2.5 py-1 rounded-xl border transition-all inline-flex items-center gap-1.5 font-medium ${
+                                                        onList
+                                                            ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-300 shadow-sm'
+                                                            : 'bg-background hover:bg-secondary border-border text-foreground'
+                                                    }`}
+                                                >
+                                                    {onList ? (
+                                                        <Icons.Check className="w-3.5 h-3.5 text-emerald-600" />
+                                                    ) : (
+                                                        <Icons.Plus className="w-3.5 h-3.5 text-muted-foreground" />
+                                                    )}
+                                                    <span>{ing.name}</span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            ) : null}
                         </div>
 
-                        <div className="pt-3 border-t border-border/60 flex items-center justify-between gap-2">
-                            {dinnerState.tonightTitle && (
-                                <button
-                                    type="button"
-                                    onClick={() => handleSaveDinner('', '')}
-                                    className="text-xs font-semibold text-rose-500 hover:underline"
-                                >
-                                    Clear Tonight's Dinner
-                                </button>
-                            )}
-                            <div className="flex items-center gap-2 ml-auto">
-                                <button
-                                    type="button"
-                                    onClick={() => setDinnerModalOpen(false)}
-                                    className="px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => handleSaveDinner()}
-                                    className="px-5 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-all shadow-sm"
-                                >
-                                    Save Dinner
-                                </button>
+                        {/* 3. MEAL PICKER: RECIPES TAB vs CUSTOM TAB */}
+                        <div className="space-y-3 pt-1">
+                            <div className="flex items-center justify-between border-b border-border pb-2">
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setDinnerModalTab('recipes')}
+                                        className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-all ${
+                                            dinnerModalTab === 'recipes'
+                                                ? 'bg-primary text-primary-foreground shadow-sm'
+                                                : 'text-muted-foreground hover:text-foreground'
+                                        }`}
+                                    >
+                                        Browse Mealie Recipes ({mealieRecipes.length})
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setDinnerModalTab('custom')}
+                                        className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-all ${
+                                            dinnerModalTab === 'custom'
+                                                ? 'bg-primary text-primary-foreground shadow-sm'
+                                                : 'text-muted-foreground hover:text-foreground'
+                                        }`}
+                                    >
+                                        Quick / Custom Option
+                                    </button>
+                                </div>
+
+                                {isSavingDinner && (
+                                    <span className="text-xs text-primary font-semibold flex items-center gap-1.5">
+                                        <Icons.Loader2 className="w-3 h-3 animate-spin" />
+                                        Syncing with Mealie...
+                                    </span>
+                                )}
                             </div>
+
+                            {dinnerModalTab === 'recipes' ? (
+                                <div className="space-y-3">
+                                    {/* Search Bar & Tag Filters */}
+                                    <div className="space-y-2">
+                                        <div className="relative">
+                                            <Icons.Search className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
+                                            <Input
+                                                value={recipeSearch}
+                                                onChange={(e) => setRecipeSearch(e.target.value)}
+                                                placeholder="Search recipes by name, tag, or ingredient..."
+                                                className="pl-9 h-10 bg-card text-sm"
+                                            />
+                                            {recipeSearch && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setRecipeSearch('')}
+                                                    className="absolute right-3 top-3 text-muted-foreground hover:text-foreground text-xs"
+                                                >
+                                                    Clear
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {availableRecipeTags.length > 0 && (
+                                            <div className="flex flex-wrap items-center gap-1.5">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSelectedRecipeTag('all')}
+                                                    className={`text-[11px] px-2.5 py-0.5 rounded-full border transition-colors ${
+                                                        selectedRecipeTag === 'all'
+                                                            ? 'bg-primary text-primary-foreground border-primary font-bold'
+                                                            : 'bg-card border-border text-muted-foreground hover:text-foreground'
+                                                    }`}
+                                                >
+                                                    All Recipes
+                                                </button>
+                                                {availableRecipeTags.map(tag => (
+                                                    <button
+                                                        key={tag}
+                                                        type="button"
+                                                        onClick={() => setSelectedRecipeTag(tag)}
+                                                        className={`text-[11px] px-2.5 py-0.5 rounded-full border transition-colors ${
+                                                            selectedRecipeTag === tag
+                                                                ? 'bg-primary text-primary-foreground border-primary font-bold'
+                                                                : 'bg-card border-border text-muted-foreground hover:text-foreground'
+                                                        }`}
+                                                    >
+                                                        {tag}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Recipe Grid / List */}
+                                    <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
+                                        {loadingRecipes && mealieRecipes.length === 0 ? (
+                                            <div className="py-8 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
+                                                <Icons.Loader2 className="w-4 h-4 animate-spin" />
+                                                <span>Loading your recipes from Mealie...</span>
+                                            </div>
+                                        ) : filteredRecipes.length === 0 ? (
+                                            <div className="py-8 text-center text-xs text-muted-foreground border border-dashed rounded-xl p-4">
+                                                No recipes match "{recipeSearch}". Try another search or create a custom entry!
+                                            </div>
+                                        ) : (
+                                            filteredRecipes.map(recipe => {
+                                                const isCurrent = activeDay?.recipeId === recipe.id || activeDay?.title === recipe.name;
+                                                return (
+                                                    <div
+                                                        key={recipe.id}
+                                                        className={`p-3 rounded-xl border transition-all flex items-center justify-between gap-3 group shadow-sm ${
+                                                            isCurrent
+                                                                ? 'bg-primary/5 border-primary/50'
+                                                                : 'bg-card border-border/70 hover:border-border hover:bg-secondary/40'
+                                                        }`}
+                                                    >
+                                                        <div className="min-w-0 flex-1">
+                                                            <div className="flex items-center gap-2">
+                                                                <h4 className="text-sm font-bold truncate text-foreground group-hover:text-primary transition-colors">
+                                                                    {recipe.name}
+                                                                </h4>
+                                                                {isCurrent && (
+                                                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+                                                                        Current
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            {recipe.description && (
+                                                                <p className="text-xs text-muted-foreground truncate mt-0.5">
+                                                                    {recipe.description}
+                                                                </p>
+                                                            )}
+                                                            <div className="flex items-center gap-2 mt-1">
+                                                                {recipe.recipeServings ? (
+                                                                    <span className="text-[10px] text-muted-foreground">
+                                                                        Serves {recipe.recipeServings}
+                                                                    </span>
+                                                                ) : null}
+                                                                {(recipe.tags || []).slice(0, 3).map(tag => (
+                                                                    <span key={tag} className="text-[10px] px-1.5 py-0.2 rounded bg-secondary text-muted-foreground">
+                                                                        {tag}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleSelectMealieRecipe(recipe)}
+                                                            disabled={isSavingDinner || isCurrent}
+                                                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex-shrink-0 shadow-sm ${
+                                                                isCurrent
+                                                                    ? 'bg-secondary text-muted-foreground cursor-default'
+                                                                    : 'bg-primary text-primary-foreground hover:bg-primary/90'
+                                                            }`}
+                                                        >
+                                                            {isCurrent ? 'Selected' : `Plan for ${activeDay?.dayLabel || 'Dinner'}`}
+                                                        </button>
+                                                    </div>
+                                                );
+                                            })
+                                        )}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                            Custom Meal Title
+                                        </label>
+                                        <Input
+                                            value={dinnerInputTitle}
+                                            onChange={(e) => setDinnerInputTitle(e.target.value)}
+                                            placeholder="e.g. Chicken Stir Fry, Homemade Pizza, Takeout..."
+                                            className="bg-card h-10 text-sm font-semibold"
+                                            autoFocus
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                            Prep Notes or Side Dish (Optional)
+                                        </label>
+                                        <Input
+                                            value={dinnerInputNotes}
+                                            onChange={(e) => setDinnerInputNotes(e.target.value)}
+                                            placeholder="e.g. Defrost chicken at 4pm · Serve with salad"
+                                            className="bg-card h-9 text-xs"
+                                        />
+                                    </div>
+
+                                    {/* Quick Dinner Suggestions */}
+                                    <div className="space-y-2">
+                                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                            1-Click Quick Ideas
+                                        </span>
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {QUICK_DINNER_SUGGESTIONS.map(idea => (
+                                                <button
+                                                    key={idea}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setDinnerInputTitle(idea);
+                                                        handleSaveDinner(idea, dinnerInputNotes || 'Planned from Home Hub');
+                                                    }}
+                                                    className="text-xs px-3 py-1.5 rounded-xl border border-border bg-card hover:border-primary hover:text-primary transition-colors font-medium shadow-sm"
+                                                >
+                                                    {idea}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-2 flex justify-end">
+                                        <button
+                                            type="button"
+                                            onClick={() => handleSaveDinner()}
+                                            disabled={!dinnerInputTitle.trim() || isSavingDinner}
+                                            className="px-5 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-all shadow-sm disabled:opacity-50"
+                                        >
+                                            Save to Mealie Planner
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Footer Controls */}
+                        <div className="pt-3 border-t border-border/60 flex items-center justify-between gap-2">
+                            <span className="text-[11px] text-muted-foreground">
+                                Changes are immediately saved to Mealie on Unraid
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => setDinnerModalOpen(false)}
+                                className="px-5 py-2 rounded-xl bg-secondary text-secondary-foreground text-xs font-bold hover:bg-secondary/80 transition-all shadow-sm"
+                            >
+                                Done
+                            </button>
                         </div>
                     </div>
                 </DialogContent>
