@@ -1,0 +1,472 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 240 5% 96%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 240 5.9% 10%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 10% 3.9%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+.bg-grid-pattern {
+  background-size: 40px 40px;
+  background-image: linear-gradient(to right, currentColor 1px, transparent 1px),
+    linear-gradient(to bottom, currentColor 1px, transparent 1px);
+}
+
+.bg-dots-pattern {
+  background-size: 20px 20px;
+  background-image: radial-gradient(circle, currentColor 1px, transparent 1px);
+}
+
+/* Animated Background Orbs */
+.background-orbs {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.10;
+  animation: float 20s infinite ease-in-out alternate;
+}
+
+.dark .orb {
+  opacity: 0.25;
+}
+
+.orb-1 {
+  width: 400px;
+  height: 400px;
+  top: -100px;
+  left: -100px;
+}
+
+.orb-1.colorful {
+  background: #4f46e5;
+}
+
+.orb-2 {
+  width: 300px;
+  height: 300px;
+  bottom: 10%;
+  right: -50px;
+  animation-delay: -5s;
+}
+
+.orb-2.colorful {
+  background: #ec4899;
+}
+
+.orb-3 {
+  width: 500px;
+  height: 500px;
+  top: 40%;
+  left: 40%;
+  opacity: 0.3;
+  animation-delay: -10s;
+}
+
+.orb-3.colorful {
+  background: #0ea5e9;
+}
+
+@keyframes float {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  100% {
+    transform: translate(50px, 50px) scale(1.1);
+  }
+}
+
+/* Base properties for desktop pet sprites */
+.bmo-sprite,
+.coffee-sprite {
+  width: 64px;
+  height: 64px;
+  background-repeat: no-repeat;
+  background-size: auto 64px;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: -webkit-crisp-edges;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* Sprite Animations */
+.pet-walk {
+  animation: sprite-walk 0.8s steps(4) infinite;
+}
+
+.pet-idle {
+  animation: sprite-idle 1s steps(1) infinite;
+}
+
+@keyframes sprite-walk {
+  0% {
+    background-position: 0px 0;
+  }
+
+  100% {
+    background-position: -256px 0;
+  }
+}
+
+@keyframes sprite-idle {
+  0% {
+    background-position: 0px 0;
+  }
+
+  100% {
+    background-position: -64px 0;
+  }
+}
+
+/* Mug2 sprite (24x24 @ scale 8 = 192x192px per frame, displayed at 96px) */
+.mug2-sprite {
+  width: 96px;
+  height: 96px;
+  background-repeat: no-repeat;
+  background-size: auto 96px;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: -webkit-crisp-edges;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.mug2-walk {
+  animation: sprite-walk-mug2 0.8s steps(4) infinite;
+}
+
+.mug2-idle {
+  animation: sprite-idle-mug2 1s steps(1) infinite;
+}
+
+@keyframes sprite-walk-mug2 {
+  0% {
+    background-position: 0px 0;
+  }
+
+  100% {
+    background-position: -384px 0;
+  }
+}
+
+@keyframes sprite-idle-mug2 {
+  0% {
+    background-position: 0px 0;
+  }
+
+  100% {
+    background-position: -96px 0;
+  }
+}
+
+/* ── Pixel Art Sprite Pets (128px frames) ── */
+.pixel-pet-sprite {
+  width: 80px;
+  height: 80px;
+  background-repeat: no-repeat;
+  background-size: auto 80px;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: -webkit-crisp-edges;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.pixel-pet-walk {
+  animation: pixel-pet-walk-4f 0.6s steps(4) infinite;
+}
+
+.pixel-pet-idle {
+  animation: pixel-pet-idle-2f 1.2s steps(2) infinite;
+}
+
+@keyframes pixel-pet-walk-4f {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: -320px 0;
+  }
+
+  /* 80px × 4 frames = 320px */
+}
+
+@keyframes pixel-pet-idle-2f {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: -160px 0;
+  }
+
+  /* 80px × 2 frames = 160px */
+}
+
+
+/* Emote / Thought Bubble */
+.emote-bubble {
+  position: absolute;
+  top: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  border: 4px solid #333;
+  border-radius: 12px;
+  padding: 4px 8px;
+  color: #333;
+  font-size: 14px;
+  font-weight: bold;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 50;
+  animation: float-up-fade 2s ease-out forwards;
+}
+
+.emote-bubble::after {
+  content: "";
+  position: absolute;
+  bottom: -9px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid #333;
+}
+
+@keyframes float-up-fade {
+  0% {
+    transform: translate(-50%, 0);
+    opacity: 0;
+  }
+
+  20% {
+    transform: translate(-50%, -10px);
+    opacity: 1;
+  }
+
+  80% {
+    transform: translate(-50%, -15px);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translate(-50%, -25px);
+    opacity: 0;
+  }
+}
+
+/* Standard UI gradients */
+.text-gradient {
+  background: linear-gradient(to right, #1e293b, #475569);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.dark .text-gradient {
+  background: linear-gradient(to right, #ffffff, #94a3b8);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+
+/* ── Sanctuary / Home Hub Typography & Themes ── */
+.font-serif-editorial {
+  font-family: 'Fraunces', Georgia, serif;
+}
+
+.font-outfit {
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.font-jakarta {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.sanctuary-card-lift {
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.28s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.25s ease;
+}
+
+.sanctuary-card-lift:hover {
+  transform: translateY(-3px);
+}
+
+.sanctuary-editorial-bg {
+  background-color: #FAF7F2;
+  background-image: radial-gradient(at 50% 0%, rgba(235, 225, 210, 0.65) 0px, transparent 70%);
+}
+
+.sanctuary-glass-bg {
+  background-color: #f4f6fb;
+  background-image:
+    radial-gradient(at 15% 15%, rgba(254, 215, 170, 0.50) 0px, transparent 50%),
+    radial-gradient(at 85% 20%, rgba(199, 210, 254, 0.55) 0px, transparent 50%),
+    radial-gradient(at 70% 85%, rgba(167, 243, 208, 0.40) 0px, transparent 50%),
+    radial-gradient(at 20% 80%, rgba(251, 207, 232, 0.40) 0px, transparent 50%);
+}
+
+.sanctuary-bento-bg {
+  background-color: #F2F4F1;
+  background-image:
+    radial-gradient(at 0% 0%, rgba(212, 226, 214, 0.6) 0px, transparent 55%),
+    radial-gradient(at 100% 100%, rgba(238, 228, 215, 0.6) 0px, transparent 55%);
+}
+
+.sanctuary-velvet-bg {
+  background-color: #161413;
+  background-image:
+    radial-gradient(at 20% 10%, rgba(217, 119, 6, 0.12) 0px, transparent 50%),
+    radial-gradient(at 80% 25%, rgba(225, 29, 72, 0.08) 0px, transparent 50%),
+    radial-gradient(at 50% 90%, rgba(16, 185, 129, 0.06) 0px, transparent 50%);
+}
+
+/* ── Theme-Adaptive Settings Modal Variables ── */
+.modal-theme-editorial {
+  --background: 36 33% 97%;
+  --foreground: 20 14% 14%;
+  --card: 0 0% 100%;
+  --card-foreground: 20 14% 14%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 20 14% 14%;
+  --primary: 16 51% 48%;
+  --primary-foreground: 36 33% 98%;
+  --secondary: 32 28% 92%;
+  --secondary-foreground: 20 14% 14%;
+  --muted: 32 24% 91%;
+  --muted-foreground: 24 10% 40%;
+  --accent: 32 30% 92%;
+  --accent-foreground: 16 51% 48%;
+  --border: 33 22% 84%;
+  --input: 33 22% 82%;
+  --ring: 16 51% 48%;
+  color-scheme: light;
+}
+
+.modal-theme-glass {
+  --background: 223 47% 97%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+  --primary: 239 84% 62%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 214 32% 93%;
+  --secondary-foreground: 222 47% 11%;
+  --muted: 214 32% 93%;
+  --muted-foreground: 215 16% 42%;
+  --accent: 226 100% 96%;
+  --accent-foreground: 239 84% 62%;
+  --border: 214 28% 85%;
+  --input: 214 28% 84%;
+  --ring: 239 84% 62%;
+  color-scheme: light;
+}
+
+.modal-theme-bento {
+  --background: 100 12% 95%;
+  --foreground: 143 18% 13%;
+  --card: 0 0% 100%;
+  --card-foreground: 143 18% 13%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 143 18% 13%;
+  --primary: 147 32% 24%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 120 14% 90%;
+  --secondary-foreground: 143 18% 13%;
+  --muted: 120 14% 90%;
+  --muted-foreground: 140 10% 38%;
+  --accent: 138 25% 92%;
+  --accent-foreground: 147 32% 24%;
+  --border: 120 12% 82%;
+  --input: 120 12% 81%;
+  --ring: 147 32% 24%;
+  color-scheme: light;
+}
+
+.modal-theme-velvet {
+  --background: 20 8% 10%;
+  --foreground: 30 33% 96%;
+  --card: 20 8% 14%;
+  --card-foreground: 30 33% 96%;
+  --popover: 20 8% 12%;
+  --popover-foreground: 30 33% 96%;
+  --primary: 38 92% 55%;
+  --primary-foreground: 20 14% 8%;
+  --secondary: 20 7% 17%;
+  --secondary-foreground: 30 33% 96%;
+  --muted: 20 7% 17%;
+  --muted-foreground: 25 10% 66%;
+  --accent: 20 7% 18%;
+  --accent-foreground: 38 92% 60%;
+  --border: 24 8% 22%;
+  --input: 24 8% 22%;
+  --ring: 38 92% 55%;
+  color-scheme: dark;
+}

@@ -1,0 +1,16 @@
+services:
+  braydashy:
+    image: ghcr.io/ruzzler/braydashy-dashboard:latest
+    container_name: BrayDashy
+    restart: unless-stopped
+    ports:
+      - "3050:3050"
+    volumes:
+      - /mnt/user/appdata/braydashy:/app/data
+      - /mnt/user/Projects/BrayDashy/unraid-runtime/backend:/app/backend
+      - /mnt/user/Projects/BrayDashy/unraid-runtime/frontend/dist:/app/frontend/dist
+      - /mnt/user/Projects/BrayDashy:/local-source
+    labels:
+      net.unraid.docker.managed: "composeman"
+      net.unraid.docker.webui: "http://[IP]:[PORT:3050]/"
+      net.unraid.docker.icon: "https://raw.githubusercontent.com/Ruzzler/braydashy-dashboard/main/icon.png"

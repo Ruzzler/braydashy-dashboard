@@ -1,0 +1,96 @@
+{
+  "serverName": "BrayDashy",
+  "serverIcon": "Server",
+  "experienceMode": "sysadmin",
+  "sanctuaryTheme": "editorial",
+  "greetingName": "",
+  "portalSubtitle": "Home Sanctuary",
+  "showTelemetry": true,
+  "desktopPetType": "latte_art",
+  "showDesktopPet": true,
+  "themeColor": "slate",
+  "appCardLayout": "grid",
+  "appCardStyle": "glass",
+  "appCardSize": "medium",
+  "quickSearchChips": [
+    "Dinner recipe ideas",
+    "3D print models",
+    "Local weather forecast"
+  ],
+  "apps": [
+    {
+      "id": "demo-mealie",
+      "name": "Mealie",
+      "url": "http://localhost:9925",
+      "iconType": "icon",
+      "icon": "UtensilsCrossed",
+      "tag": "Kitchen & Recipes",
+      "description": "Self-hosted recipe manager, meal planner, and shopping list organizer.",
+      "featured": true,
+      "categoryId": "cat-main"
+    },
+    {
+      "id": "demo-ha",
+      "name": "Home Assistant",
+      "url": "http://localhost:8123",
+      "iconType": "icon",
+      "icon": "Home",
+      "tag": "Smart Home",
+      "description": "Open source home automation that puts local control and privacy first.",
+      "categoryId": "cat-main"
+    }
+  ],
+  "categories": [
+    {
+      "id": "cat-main",
+      "name": "Everyday Favorites",
+      "order": 0
+    }
+  ],
+  "glanceWidgets": [
+    {
+      "id": "clock",
+      "type": "clock",
+      "label": "Clock",
+      "url": ""
+    },
+    {
+      "id": "system",
+      "type": "system_stats",
+      "label": "System",
+      "url": ""
+    }
+  ],
+  "setupComplete": true,
+  "backgroundStyle": "orbs",
+  "headerLayout": "classic",
+  "defaultSearchProvider": "google",
+  "searchProviders": [
+    {
+      "id": "google",
+      "name": "Google",
+      "url": "https://www.google.com/search?q={query}",
+      "prefix": "!g"
+    },
+    {
+      "id": "duckduckgo",
+      "name": "DuckDuckGo",
+      "url": "https://duckduckgo.com/?q={query}",
+      "prefix": "!ddg"
+    },
+    {
+      "id": "bing",
+      "name": "Bing",
+      "url": "https://www.bing.com/search?q={query}",
+      "prefix": "!bing"
+    },
+    {
+      "id": "youtube",
+      "name": "YouTube",
+      "url": "https://www.youtube.com/results?search_query={query}",
+      "prefix": "!yt"
+    }
+  ],
+  "enableWorkspaceMode": false,
+  "apiKeys": {}
+}

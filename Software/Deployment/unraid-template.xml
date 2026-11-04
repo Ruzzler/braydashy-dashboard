@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>BrayDashy</Name>
+  <Repository>ghcr.io/ruzzler/braydashy-dashboard:latest</Repository>
+  <Registry>https://github.com/ruzzler/braydashy-dashboard/pkgs/container/braydashy-dashboard</Registry>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/Ruzzler/braydashy-dashboard/issues</Support>
+  <Project>https://github.com/Ruzzler/braydashy-dashboard</Project>
+  <Overview>
+    A custom, beautiful, and highly dynamic Unraid landing page dashboard with dual Sysadmin Mode and Home Mode profiles.
+  </Overview>
+  <Category>Tools: Network:Web</Category>
+  <WebUI>http://[IP]:[PORT:3050]/</WebUI>
+  <TemplateURL/>
+  <Icon>https://raw.githubusercontent.com/Ruzzler/braydashy-dashboard/main/icon.png</Icon>
+  <ExtraParams/>
+  <PostArgs/>
+  <CPUset/>
+  <DateInstalled></DateInstalled>
+  <DonateText/>
+  <DonateLink/>
+  <Requires/>
+  <Config Name="WebUI Port" Target="3050" Default="3050" Mode="tcp" Description="The port the dashboard is accessible on" Type="Port" Display="always" Required="true" Mask="false">3050</Config>
+  <Config Name="App Data Directory" Target="/app/data" Default="/mnt/user/appdata/braydashy/" Mode="rw" Description="Persistent storage folder for your dashboard configuration and profiles." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/braydashy/</Config>
+  <Config Name="Local Source Share (Optional)" Target="/local-source" Default="/mnt/user/Projects/BrayDashy" Mode="rw" Description="Mount your Unraid Projects/BrayDashy folder to pull local updates directly from Settings without GitHub." Type="Path" Display="always" Required="false" Mask="false">/mnt/user/Projects/BrayDashy</Config>
+  <Config Name="Live Backend Override (Optional)" Target="/app/backend" Default="/mnt/user/Projects/BrayDashy/unraid-runtime/backend" Mode="rw" Description="Mount local backend directly over container backend." Type="Path" Display="advanced" Required="false" Mask="false">/mnt/user/Projects/BrayDashy/unraid-runtime/backend</Config>
+  <Config Name="Live Frontend Override (Optional)" Target="/app/frontend/dist" Default="/mnt/user/Projects/BrayDashy/unraid-runtime/frontend/dist" Mode="rw" Description="Mount local compiled frontend directly over container frontend." Type="Path" Display="advanced" Required="false" Mask="false">/mnt/user/Projects/BrayDashy/unraid-runtime/frontend/dist</Config>
+</Container>

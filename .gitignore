@@ -1,6 +1,21 @@
-node_modules
-.env
-npm-debug.log
-config.json
-gemini.md
-.dev-brain
+# BrayDashy Software Only Filter
+
+# Directories to exclude from GitHub repo
+Marketing/
+Management/
+
+# Local runtime configuration & personal profiles (Never commit personal IPs, names, or API keys)
+Software/Data/config.json
+Software/Data/*.bak
+Software/Data/profiles/
+Software/Server/data/
+
+# Standard JS/Vite Exclusions
+node_modules/
+dist/
+.tmp/
+*.tsbuildinfo
+
+# OS Exclusions
+.DS_Store
+Thumbs.db
