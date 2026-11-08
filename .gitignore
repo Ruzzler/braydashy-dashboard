@@ -2,7 +2,10 @@
 
 # Directories to exclude from GitHub repo
 Marketing/
-Management/
+Management/*
+!Management/Docs/
+Management/Docs/*
+!Management/Docs/CHANGELOG.md
 
 # Local runtime configuration & personal profiles (Never commit personal IPs, names, or API keys)
 Software/Data/config.json
@@ -19,3 +22,6 @@ dist/
 # OS Exclusions
 .DS_Store
 Thumbs.db
+
+# Release bundles built by Software/Deployment/release.mjs (published to Forgejo releases)
+.release/

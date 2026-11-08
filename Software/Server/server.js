@@ -335,63 +335,30 @@ app.get('/api/discovery/mdns', (req, res) => {
     res.json({ success: true, services: active });
 });
 
-// Version check endpoint (checks local Forgejo + staged-update manifest first, falls back to GitHub)
+// Version check + update (Forgejo releases; see updater.js). Replaced the manifest /
+// Forgejo-dev-commit check on 2026-11-07: it compared against a version.json with a blank
+// commit and showed a false "0.9.1 update".
+const updater = require('./updater');
+
 app.get('/api/version/check', async (req, res) => {
     try {
-        const localSource = getDefaultLocalSyncPath();
-        const runtimeVersionFile = path.join(__dirname, 'version.json');
-        let currentVersion = '0.9.0';
-        let currentCommit = '';
-        if (fs.existsSync(runtimeVersionFile)) {
-            try {
-                const rv = JSON.parse(fs.readFileSync(runtimeVersionFile, 'utf8'));
-                if (rv.version) currentVersion = rv.version;
-                if (rv.commit) currentCommit = rv.commit;
-            } catch (_) { }
-        }
-
-        const manifestPath = path.join(localSource, 'manifest.json');
-        let manifest = null;
-        if (fs.existsSync(manifestPath)) {
-            try {
-                manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-            } catch (_) { }
-        }
-
-        // Also check local Forgejo (http://192.168.0.100:3300) latest commit on dev
-        let forgejoCommit = '';
-        let forgejoMessage = '';
-        try {
-            const fjRes = await axios.get('http://192.168.0.100:3300/api/v1/repos/bray/braydashy/commits?sha=dev&limit=1', {
-                timeout: 2500
-            });
-            if (Array.isArray(fjRes.data) && fjRes.data[0]) {
-                forgejoCommit = String(fjRes.data[0].sha || '').substring(0, 7);
-                forgejoMessage = String(fjRes.data[0].commit?.message || '').split('\n')[0];
-            }
-        } catch (_) { }
-
-        const latestVersion = manifest?.version || currentVersion;
-        const latestCommit = manifest?.commit || forgejoCommit || currentCommit;
-        const updateAvailable = Boolean(
-            (manifest?.version && manifest.version !== currentVersion) ||
-            (latestCommit && currentCommit && latestCommit !== currentCommit)
-        );
-
-        res.json({
-            currentVersion,
-            currentCommit,
-            latestVersion,
-            latestCommit,
-            updateAvailable,
-            releaseNotes: manifest?.releaseNotes || forgejoMessage || 'Local Forgejo update ready',
-            url: 'http://192.168.0.100:3300/bray/braydashy'
-        });
+        res.json(await updater.checkForUpdate(__dirname));
     } catch (error) {
-        res.json({
-            currentVersion: '0.9.0',
-            updateAvailable: false
-        });
+        res.json({ currentVersion: 'unknown', updateAvailable: false, checkError: error.message });
+    }
+});
+
+app.post('/api/update/apply', async (req, res) => {
+    try {
+        const tag = await updater.applyLatest(__dirname);
+        res.json({ success: true, tag, restarting: true, message: `Installed ${tag}; restarting` });
+        setTimeout(() => {
+            console.log(`[BrayDashy] Restarting on release ${tag}`);
+            process.exit(0);
+        }, 800);
+    } catch (error) {
+        console.error('[Update Error]:', error.message);
+        res.status(409).json({ success: false, error: error.message });
     }
 });
 
@@ -1791,230 +1758,15 @@ app.get('/api/rss', async (req, res) => {
 });
 
 // =========================================================================
-// LOCAL UPDATE & UNRAID SYNC ENDPOINTS
+// RETIRED LOCAL SYNC ENDPOINTS
 // =========================================================================
-function copyRecursiveSync(src, dest) {
-    if (!fs.existsSync(src)) return;
-    const stats = fs.statSync(src);
-    if (stats.isDirectory()) {
-        if (!fs.existsSync(dest)) {
-            fs.mkdirSync(dest, { recursive: true });
-        }
-        for (const child of fs.readdirSync(src)) {
-            copyRecursiveSync(path.join(src, child), path.join(dest, child));
-        }
-    } else {
-        const parentDir = path.dirname(dest);
-        if (!fs.existsSync(parentDir)) {
-            fs.mkdirSync(parentDir, { recursive: true });
-        }
-        fs.copyFileSync(src, dest);
-    }
-}
-
-function getDefaultLocalSyncPath() {
-    if (process.env.LOCAL_SYNC_PATH) return process.env.LOCAL_SYNC_PATH;
-    if (process.platform === 'win32') {
-        if (fs.existsSync('W:\\')) return 'W:\\BrayDashy';
-        return '\\\\192.168.0.100\\Projects\\BrayDashy';
-    }
-    if (fs.existsSync('/local-source')) return '/local-source';
-    return '/mnt/user/Projects/BrayDashy';
-}
-
-app.get('/api/local-sync/status', (req, res) => {
-    const requestedPath = req.query.path ? String(req.query.path).trim() : '';
-    const targetPath = requestedPath || getDefaultLocalSyncPath();
-    const reachable = fs.existsSync(targetPath);
-
-    let manifest = null;
-    const manifestPath = path.join(targetPath, 'manifest.json');
-    if (reachable && fs.existsSync(manifestPath)) {
-        try {
-            manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-        } catch (_) { }
-    }
-
-    let runtimeIndexMtime = null;
-    const indexHtmlPath = path.join(DIST_DIR, 'index.html');
-    if (fs.existsSync(indexHtmlPath)) {
-        try {
-            runtimeIndexMtime = fs.statSync(indexHtmlPath).mtime.toISOString();
-        } catch (_) { }
-    }
-
-    res.json({
-        environment: IS_UNRAID_DOCKER ? 'unraid-docker' : (process.platform === 'win32' ? 'windows-dev' : 'linux'),
-        defaultPath: getDefaultLocalSyncPath(),
-        targetPath,
-        reachable,
-        manifest,
-        runtimeDistDir: DIST_DIR,
-        runtimeConfigDir: CONFIG_DIR,
-        runtimeIndexMtime
+// Retired 2026-11-07: the W:\BrayDashy staged-update / unraid-runtime copy is gone.
+// Updates come from Forgejo releases: POST /api/update/apply.
+app.all(['/api/local-sync/status', '/api/local-sync/push', '/api/local-sync/pull'], (req, res) => {
+    res.status(410).json({
+        success: false,
+        error: 'Local sync was retired. Updates now come from Forgejo releases (Settings > Updates).'
     });
-});
-
-// Push current local build & profiles to Unraid share (e.g. \\192.168.0.100\Projects\BrayDashy)
-app.post('/api/local-sync/push', (req, res) => {
-    try {
-        const targetPath = (req.body?.targetPath || getDefaultLocalSyncPath()).trim();
-        const includeBriProfile = req.body?.includeBriProfile !== false;
-
-        if (!fs.existsSync(targetPath)) {
-            fs.mkdirSync(targetPath, { recursive: true });
-        }
-
-        const runtimeRoot = path.join(targetPath, 'unraid-runtime');
-        const runtimeBackend = path.join(runtimeRoot, 'backend');
-        const runtimeSeedProfiles = path.join(runtimeBackend, 'seed-profiles');
-        const runtimeDist = path.join(runtimeRoot, 'frontend', 'dist');
-
-        fs.mkdirSync(runtimeSeedProfiles, { recursive: true });
-        fs.mkdirSync(runtimeDist, { recursive: true });
-
-        // 1. Copy backend server.js
-        fs.copyFileSync(__filename, path.join(runtimeBackend, 'server.js'));
-
-        // 2. Copy built frontend dist
-        copyRecursiveSync(DIST_DIR, runtimeDist);
-
-        // 3. Copy seed profiles (config.json + bri.json) so Unraid has both Sysadmin & Bri's Hub ready
-        if (fs.existsSync(CONFIG_PATH)) {
-            fs.copyFileSync(CONFIG_PATH, path.join(runtimeSeedProfiles, 'config.json'));
-        }
-        if (includeBriProfile && fs.existsSync(PROFILES_DIR)) {
-            for (const f of fs.readdirSync(PROFILES_DIR)) {
-                if (f.endsWith('.json')) {
-                    fs.copyFileSync(path.join(PROFILES_DIR, f), path.join(runtimeSeedProfiles, f));
-                }
-            }
-        }
-        if (fs.existsSync(EXAMPLE_CONFIG_PATH)) {
-            fs.copyFileSync(EXAMPLE_CONFIG_PATH, path.join(runtimeSeedProfiles, 'config.example.json'));
-        }
-
-        // 4. Write manifest.json
-        const manifest = {
-            version: '0.9.0-home-hub',
-            syncedAt: new Date().toISOString(),
-            sourcePlatform: process.platform,
-            filesSynced: ['unraid-runtime/backend/server.js', 'unraid-runtime/frontend/dist', 'unraid-runtime/backend/seed-profiles']
-        };
-        fs.writeFileSync(path.join(targetPath, 'manifest.json'), JSON.stringify(manifest, null, 2), 'utf8');
-
-        res.json({
-            success: true,
-            targetPath,
-            manifest,
-            message: `Published latest build & profiles to ${targetPath}`
-        });
-    } catch (error) {
-        console.error('[LocalSync Push Error]:', error.message);
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-// Pull latest build & profiles from mounted local folder (e.g. /local-source on Unraid)
-app.post('/api/local-sync/pull', (req, res) => {
-    try {
-        const sourcePath = (req.body?.sourcePath || getDefaultLocalSyncPath()).trim();
-        const overwriteProfiles = Boolean(req.body?.overwriteProfiles);
-        const restartServer = Boolean(req.body?.restartServer);
-
-        const stagedRoot = path.join(sourcePath, 'staged-update');
-        const runtimeRoot = fs.existsSync(stagedRoot)
-            ? stagedRoot
-            : fs.existsSync(path.join(sourcePath, 'unraid-runtime'))
-                ? path.join(sourcePath, 'unraid-runtime')
-                : sourcePath;
-
-        const sourceServerJs = [
-            path.join(runtimeRoot, 'backend', 'server.js'),
-            path.join(sourcePath, 'Software', 'Server', 'server.js')
-        ].find(p => fs.existsSync(p));
-
-        const sourceDistDir = [
-            path.join(runtimeRoot, 'frontend', 'dist'),
-            path.join(sourcePath, 'Software', 'Dashboard', 'dist')
-        ].find(p => fs.existsSync(p));
-
-        const sourceSeedProfilesDir = [
-            path.join(runtimeRoot, 'backend', 'seed-profiles'),
-            path.join(sourcePath, 'Software', 'Data', 'profiles')
-        ].find(p => fs.existsSync(p));
-
-        if (!sourceDistDir && !sourceServerJs) {
-            return res.status(404).json({
-                success: false,
-                error: `No valid BrayDashy bundle found at ${sourcePath}. Make sure the folder is mounted and contains unraid-runtime/ or Software/.`
-            });
-        }
-
-        // 1. Copy frontend dist if source and destination differ
-        if (sourceDistDir && path.resolve(sourceDistDir) !== path.resolve(DIST_DIR)) {
-            copyRecursiveSync(sourceDistDir, DIST_DIR);
-        }
-
-        // 2. Copy seed profiles (e.g. bri.json) without touching main config.json
-        if (sourceSeedProfilesDir && fs.existsSync(sourceSeedProfilesDir)) {
-            for (const f of fs.readdirSync(sourceSeedProfilesDir)) {
-                if (f.endsWith('.json') && f !== 'config.example.json' && f !== 'config.json') {
-                    const destProfile = path.join(PROFILES_DIR, f);
-                    if (overwriteProfiles || !fs.existsSync(destProfile)) {
-                        fs.copyFileSync(path.join(sourceSeedProfilesDir, f), destProfile);
-                    }
-                }
-            }
-        }
-
-        // 3. Copy backend server.js if source and destination differ
-        if (sourceServerJs && path.resolve(sourceServerJs) !== path.resolve(__filename)) {
-            fs.copyFileSync(sourceServerJs, __filename);
-        }
-
-        let manifest = null;
-        const manifestPath = path.join(sourcePath, 'manifest.json');
-        if (fs.existsSync(manifestPath)) {
-            try {
-                manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-            } catch (_) { }
-        }
-
-        // 4. Record installed version in runtime version.json so update badge clears
-        if (manifest) {
-            try {
-                fs.writeFileSync(
-                    path.join(__dirname, 'version.json'),
-                    JSON.stringify({
-                        version: manifest.version || '0.9.1',
-                        commit: manifest.commit || '',
-                        installedAt: new Date().toISOString()
-                    }, null, 2),
-                    'utf8'
-                );
-            } catch (_) { }
-        }
-
-        res.json({
-            success: true,
-            sourcePath,
-            manifest,
-            restarting: restartServer && IS_UNRAID_DOCKER,
-            message: `Pulled latest update from ${sourcePath}`
-        });
-
-        // If running inside Unraid Docker (with restart: unless-stopped), gracefully exit so Docker restarts with new server.js
-        if (restartServer && IS_UNRAID_DOCKER) {
-            setTimeout(() => {
-                console.log('[BrayDashy] Restarting container to apply pulled local update...');
-                process.exit(0);
-            }, 600);
-        }
-    } catch (error) {
-        console.error('[LocalSync Pull Error]:', error.message);
-        res.status(500).json({ success: false, error: error.message });
-    }
 });
 
 // =========================================================================

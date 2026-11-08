@@ -30,6 +30,7 @@ import { Config, AppItem, GlanceWidget, SanctuaryTheme } from '../types';
 import { SUPPORTED_APIS, COMMON_HA_ENTITIES } from '../constants';
 import { formatIconName } from '../lib/utils';
 import { useConfig } from '../context/ConfigContext';
+import { VersionInfo, fetchVersionInfo, applyLatestRelease } from '../lib/update';
 
 const QUICK_ICON_CHOICES = [
     'UtensilsCrossed',
@@ -74,95 +75,17 @@ export function SettingsModal({
     const [testStatuses, setTestStatuses] = useState<{ [key: string]: 'idle' | 'testing' | 'success' | 'failed' }>({});
     const [dashboardSubTab, setDashboardSubTab] = useState<'apps' | 'widgets' | 'categories'>('apps');
     const [newProfileName, setNewProfileName] = useState('');
-    const [localSyncPath, setLocalSyncPath] = useState('');
-    const [localSyncInfo, setLocalSyncInfo] = useState<{
-        environment?: string;
-        reachable?: boolean;
-        manifest?: { version?: string; syncedAt?: string };
-        busy?: boolean;
-        message?: string;
-        error?: string;
-    }>({});
+    const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
+    const [updateState, setUpdateState] = useState<{ busy?: boolean; message?: string; error?: string }>({});
 
-    const checkLocalSyncStatus = async (customPath?: string) => {
-        try {
-            const q = customPath ? `?path=${encodeURIComponent(customPath)}` : '';
-            const res = await fetch(`/api/local-sync/status${q}`);
-            if (res.ok) {
-                const data = await res.json();
-                if (!customPath && data.targetPath) {
-                    setLocalSyncPath(data.targetPath);
-                }
-                setLocalSyncInfo(prev => ({
-                    ...prev,
-                    environment: data.environment,
-                    reachable: data.reachable,
-                    manifest: data.manifest
-                }));
-            }
-        } catch (_) { }
-    };
+    const refreshVersionInfo = async () => setVersionInfo(await fetchVersionInfo());
 
-    const handleLocalSyncPush = async () => {
-        setLocalSyncInfo(prev => ({ ...prev, busy: true, message: undefined, error: undefined }));
+    const handleApplyUpdate = async () => {
+        setUpdateState({ busy: true, message: 'Installing the newest release; the page reloads when it is back...' });
         try {
-            const res = await fetch('/api/local-sync/push', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ targetPath: localSyncPath, includeBriProfile: true })
-            });
-            const data = await res.json();
-            if (res.ok && data.success) {
-                setLocalSyncInfo(prev => ({
-                    ...prev,
-                    busy: false,
-                    reachable: true,
-                    manifest: data.manifest,
-                    message: data.message
-                }));
-            } else {
-                setLocalSyncInfo(prev => ({
-                    ...prev,
-                    busy: false,
-                    error: data.error || 'Failed to push build to Unraid share'
-                }));
-            }
+            await applyLatestRelease();
         } catch (err: any) {
-            setLocalSyncInfo(prev => ({ ...prev, busy: false, error: err.message }));
-        }
-    };
-
-    const handleLocalSyncPull = async () => {
-        setLocalSyncInfo(prev => ({ ...prev, busy: true, message: undefined, error: undefined }));
-        try {
-            const res = await fetch('/api/local-sync/pull', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    sourcePath: localSyncPath,
-                    overwriteProfiles: false,
-                    restartServer: true
-                })
-            });
-            const data = await res.json();
-            if (res.ok && data.success) {
-                setLocalSyncInfo(prev => ({
-                    ...prev,
-                    busy: false,
-                    manifest: data.manifest,
-                    message: `${data.message}. Reloading dashboard...`
-                }));
-                await refreshProfiles();
-                setTimeout(() => window.location.reload(), 1200);
-            } else {
-                setLocalSyncInfo(prev => ({
-                    ...prev,
-                    busy: false,
-                    error: data.error || 'Failed to pull from local path'
-                }));
-            }
-        } catch (err: any) {
-            setLocalSyncInfo(prev => ({ ...prev, busy: false, error: err.message }));
+            setUpdateState({ busy: false, error: err.message });
         }
     };
 
@@ -171,7 +94,7 @@ export function SettingsModal({
             const copy = JSON.parse(JSON.stringify(config));
             setLocalConfig(copy);
             setSettingsViewMode(copy.experienceMode === 'sanctuary' ? 'home' : 'sysadmin');
-            checkLocalSyncStatus();
+            refreshVersionInfo();
         }
     }, [open, config]);
 
@@ -1399,69 +1322,59 @@ export function SettingsModal({
                                         <div className="flex items-center justify-between gap-3">
                                             <div>
                                                 <CardTitle className="text-lg flex items-center gap-2">
-                                                    <Icons.FolderSync className="w-5 h-5 text-primary" /> Local Source & Unraid Sync
+                                                    <Icons.PackageCheck className="w-5 h-5 text-primary" /> Updates
                                                 </CardTitle>
                                                 <CardDescription>
-                                                    Publish builds from your Gaming PC to your Unraid <code className="text-xs font-mono">Projects</code> share, or pull updates directly from a mounted local folder without pushing to public GitHub.
+                                                    BrayDashy runs tagged releases from Forgejo. New releases are published from the project on Riggs (<code className="text-xs font-mono">release.mjs</code>).
                                                 </CardDescription>
                                             </div>
                                             <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1.5 ${
-                                                localSyncInfo.reachable
-                                                    ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30'
-                                                    : 'bg-amber-500/15 text-amber-500 border border-amber-500/30'
+                                                versionInfo?.updateAvailable
+                                                    ? 'bg-amber-500/15 text-amber-500 border border-amber-500/30'
+                                                    : 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30'
                                             }`}>
-                                                <span className={`w-1.5 h-1.5 rounded-full ${localSyncInfo.reachable ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                                                {localSyncInfo.reachable ? 'Share Reachable' : 'Path Not Found'}
+                                                <span className={`w-1.5 h-1.5 rounded-full ${versionInfo?.updateAvailable ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+                                                {versionInfo?.updateAvailable ? `${versionInfo.latestTag} available` : 'Up to date'}
                                             </span>
                                         </div>
                                     </CardHeader>
                                     <CardContent className="space-y-3">
-                                        <div className="flex flex-col sm:flex-row gap-2">
-                                            <Input
-                                                value={localSyncPath}
-                                                onChange={(e) => setLocalSyncPath(e.target.value)}
-                                                onBlur={() => checkLocalSyncStatus(localSyncPath)}
-                                                placeholder="\\192.168.0.100\Projects\BrayDashy or /local-source"
-                                                className="font-mono text-xs bg-background/60 flex-1"
-                                            />
+                                        <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-2">
+                                            <span>Running</span>
+                                            <strong className="text-foreground font-mono">{versionInfo?.currentTag || versionInfo?.currentVersion || 'unknown'}</strong>
+                                            {versionInfo?.currentCommit && <span className="font-mono">({versionInfo.currentCommit})</span>}
+                                            {versionInfo?.latestTag && <><span>·</span><span>newest release</span><strong className="text-foreground font-mono">{versionInfo.latestTag}</strong></>}
+                                        </div>
+                                        {versionInfo?.checkError && (
+                                            <div className="text-xs text-amber-500">Could not reach Forgejo: {versionInfo.checkError}</div>
+                                        )}
+                                        {versionInfo?.canUpdate === false && (
+                                            <div className="text-xs text-muted-foreground">This copy is not running from a release deploy, so it cannot update itself.</div>
+                                        )}
+                                        <div className="flex gap-2">
                                             <button
                                                 type="button"
-                                                onClick={handleLocalSyncPush}
-                                                disabled={localSyncInfo.busy}
-                                                className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 disabled:opacity-50 flex items-center gap-1.5 flex-shrink-0"
-                                            >
-                                                <Upload className="w-3.5 h-3.5" />
-                                                <span>Push Build to Unraid Share</span>
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={handleLocalSyncPull}
-                                                disabled={localSyncInfo.busy}
-                                                className="px-4 py-2 rounded-lg bg-secondary text-secondary-foreground border border-border text-xs font-semibold hover:bg-secondary/80 disabled:opacity-50 flex items-center gap-1.5 flex-shrink-0"
+                                                onClick={handleApplyUpdate}
+                                                disabled={updateState.busy || !versionInfo?.updateAvailable}
+                                                className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 disabled:opacity-50 flex items-center gap-1.5"
                                             >
                                                 <Download className="w-3.5 h-3.5" />
-                                                <span>Pull Update from Local Path</span>
+                                                <span>{updateState.busy ? 'Updating...' : 'Install newest release'}</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={refreshVersionInfo}
+                                                disabled={updateState.busy}
+                                                className="px-4 py-2 rounded-lg bg-secondary text-secondary-foreground border border-border text-xs font-semibold hover:bg-secondary/80 disabled:opacity-50"
+                                            >
+                                                Check again
                                             </button>
                                         </div>
-
-                                        {localSyncInfo.manifest?.syncedAt && (
-                                            <div className="text-xs text-muted-foreground flex items-center gap-2">
-                                                <span>Latest bundle in folder:</span>
-                                                <strong className="text-foreground font-mono">{localSyncInfo.manifest.version || 'local'}</strong>
-                                                <span>·</span>
-                                                <span>{new Date(localSyncInfo.manifest.syncedAt).toLocaleString()}</span>
-                                            </div>
+                                        {updateState.message && (
+                                            <div className="p-2.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-500 text-xs font-medium">{updateState.message}</div>
                                         )}
-
-                                        {localSyncInfo.message && (
-                                            <div className="p-2.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-500 text-xs font-medium">
-                                                {localSyncInfo.message}
-                                            </div>
-                                        )}
-                                        {localSyncInfo.error && (
-                                            <div className="p-2.5 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-500 text-xs font-medium">
-                                                {localSyncInfo.error}
-                                            </div>
+                                        {updateState.error && (
+                                            <div className="p-2.5 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-500 text-xs font-medium">{updateState.error}</div>
                                         )}
                                     </CardContent>
                                 </Card>

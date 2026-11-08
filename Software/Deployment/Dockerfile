@@ -24,7 +24,8 @@ COPY Software/Server/package*.json ./
 RUN npm ci --omit=dev
 
 # Copy backend logic
-COPY Software/Server/server.js ./backend/server.js
+COPY Software/Server/server.js Software/Server/updater.js ./backend/
+COPY Software/Deployment/run.js ./run.js
 
 # Copy built frontend assets from Stage 1
 COPY --from=frontend-builder /app/Software/Dashboard/dist ./frontend/dist

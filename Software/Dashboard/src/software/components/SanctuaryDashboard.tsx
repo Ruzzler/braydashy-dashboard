@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { applyLatestRelease } from '../lib/update';
 import * as Icons from 'lucide-react';
 import { formatIconName } from '../lib/utils';
 import { AppItem, HaEntityData, SanctuaryTheme } from '../types';
@@ -453,12 +454,7 @@ export function SanctuaryDashboard({
     const handleApplyUpdate = async () => {
         setApplyingUpdate(true);
         try {
-            await fetch('/api/local-sync/pull', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ restartServer: false })
-            });
-            setTimeout(() => window.location.reload(), 600);
+            await applyLatestRelease();
         } catch (_) {
             setApplyingUpdate(false);
         }
@@ -1054,7 +1050,7 @@ export function SanctuaryDashboard({
                                 type="button"
                                 onClick={handleApplyUpdate}
                                 disabled={applyingUpdate}
-                                title="Click to apply the latest local Forgejo update"
+                                title="Install the newest BrayDashy release"
                                 className="h-9 px-3.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-sm transition-all animate-pulse"
                             >
                                 <Icons.ArrowDownCircle className="w-3.5 h-3.5" />

@@ -1,0 +1,217 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.9.3] - 2026-11-07
+
+### Changed
+- **Releases from Forgejo**: BrayDashy now runs tagged releases. `Software/Deployment/release.mjs` builds the app, tags `vX.Y.Z` and publishes a Forgejo release on `home/braydashy` with a checksummed bundle. On Unraid the container runs `/app/deploy/run.js`, which starts the release named in `current.json` and rolls back to the previous release if a new one keeps crashing.
+- **Update check**: `/api/version/check` reads the newest Forgejo release and compares versions; it no longer compares a blank commit against `dev` (that showed a false 0.9.1 update). No release, no network or an unknown version means no update badge.
+- **One update step**: `POST /api/update/apply` (the Update button, Settings > Updates) downloads the newest release, checks its sha256, installs it beside the old one and restarts.
+
+### Removed
+- **Local sync**: the `W:\BrayDashy` `staged-update` / `unraid-runtime` copy and `/api/local-sync/*` (they return 410).
+
+## [0.9.0 - 0.9.2] - 2026-11-04
+
+### Added
+- Home Mode (Sanctuary) with multi-profile routing (`/bri`, `/p/:profile`), Home Assistant to-do and dinner APIs, and the Mealie meal-plan dinner card and popup.
+
+## [0.8.7] - 2026-03-06
+
+### Fixed
+- **Command Palette**: Resolved a visual bug where long search queries overlapped with the "ESC" and "Close" buttons by adding responsive right-padding.
+- **Header Subtext**: Fixed an issue where long "funny" subtitles were clipped on mobile devices; text now wraps correctly to multiple lines while maintaining animation fidelity.
+- **Infrastructure**: Added a dedicated `npm run test` script to the frontend to ensure UI components are verified by Vitest before every release.
+
+### Changed
+- **Phase 1 Finalization**: Verified and sealed all mobile-responsive UI improvements and theme preview logic.
+- **Mascot Roster locked**: Character selection is now focused on 4 high-quality mascots (BMO, Coffee Mug, Latte Art, French Press) to ensure maximum animation fidelity.
+- **Engineering Standards**: Upgraded the project to SDLC v2.3, integrating "Premium Design Integrity Audits" and mandatory manual verification loops.
+
+## [0.8.6] - 2026-03-06
+
+### Added
+- **Advanced Search Configuration**: Replaced hardcoded search shortcuts with a dynamic provider list in Settings. Users can now add, edit, and delete custom search engines (e.g., `!imdb`).
+- **Full Coffee Pet Roster**: Expanded the character selector to include all 9 planned coffee-themed pets (French Press, Espresso Shot, Pour Over, Takeout Cup, Mocha Frappé, etc.).
+- **Docker OCI Labels**: Added standard `org.opencontainers` metadata labels to the Dockerfile for better visibility in update tools like Watchtower.
+
+### Fixed
+- **App.tsx Stability**: Fixed missing variable declarations that caused intermittent rendering issues when toggling pet types.
+- **Search Logic**: Improved prefix detection to correctly handle custom prefixes without colliding with default search queries.
+
+## [0.8.5] - 2026-03-05
+
+### Added
+- **Latte Art Bowl (Pixel Art Sprite)**: Introduced the first character using the new high-resolution pixel art sprite engine. Includes a full 4-frame walk cycle and 2-frame idle animation with `image-rendering: pixelated` for crisp visuals.
+- **Shared PetWrapper Component**: Extracted core mascot logic (movement, emote bubbles, interaction) into a reusable wrapper, streamlining future character additions.
+- **Pixel Art Sprite Sheet Pipeline**: Established a robust system for converting AI-generated animation frames into game-ready horizontal sprite strips (`scripts/buildSpriteSheet.mjs`).
+- **Official Project Branching Strategy**: Formalized the use of `dev` for active work and `main` for stable releases to ensure a production-ready dashboard at all times.
+
+### Changed
+- **Settings Modal**: Updated the Character Type selection to feature the three finished high-res mascots (BMO, Original Mug, and Latte Art Bowl).
+
+
+## [0.8.0] - 2026-03-05
+
+### Security
+- **SSRF Protection**: The RSS proxy endpoint now validates all feed URLs, blocking requests to private IP ranges (`10.x`, `192.168.x`, `172.16-31.x`), `localhost`, and cloud metadata endpoints (`169.254.x.x`). Malicious feed URLs are rejected with a clear error.
+- **Body Size Limiting**: Added `100kb` request body limit to the config POST endpoint to prevent memory exhaustion attacks.
+- **Config Write Validation**: The config save endpoint now validates that the request is a proper object with required fields before writing to disk.
+- **Credential Handling Fix**: Fixed `qBittorrent` password parsing — passwords containing `:` characters now split correctly on the first colon only.
+- **Git History Purge**: Removed `config.json` (which contained API keys from `v0.1.0-alpha.1`) from all 59 commits in git history using `git-filter-repo`. API keys have been rotated.
+
+### Changed
+- **Backend Refactor**: Eliminated ~365 lines of copy-paste route handlers. All 9 service integrations (Sonarr, Radarr, Tautulli, AdGuard, etc.) now use a shared `createServiceRoute()` factory + named stat-fetcher functions. Adding a new service is now 2 lines of code.
+- **App.tsx Halved**: Main component refactored from 471 → ~220 lines. Inline component definitions and all `any` type aliases removed.
+- **Central Type System**: Created `frontend/src/types.ts` as the single source of truth for all shared TypeScript interfaces (`Config`, `AppItem`, `Category`, `GlanceWidget`, etc.).
+- **SettingsModal Type Safety**: Replaced all `any` types with proper interfaces. State updaters migrated to `prev =>` functional pattern for correctness under React batching.
+- **Theme Persistence**: Dark/light mode preference now persists across page reloads via `localStorage`.
+- **Header Typed**: `Header.tsx` now uses the `Config` type on all props.
+- **Canvas Dependency**: Moved `canvas` npm package from `dependencies` to `devDependencies` — it is only used by the sprite-sheet generation script and no longer ships in the production Docker image.
+
+### Fixed
+- **Invisible Grip Icons**: Edit-mode drag handles in the Glance Widgets row were always hidden. Fixed by adding `group relative` to the `SortableWidgetItem` wrapper so `group-hover` activates correctly.
+- **Dead Code Elimination**: Purged redundant Vite scaffold files (`App.css`, `vite.svg`, `react.svg`), unused legacy components (`BackgroundOrbs.tsx`), and deleted the stale root `config.json`.
+- **WorkspaceViewer Crash**: `new URL(app.url).host` would throw on malformed URLs, crashing the workspace panel. Now wrapped in a try/catch.
+- **Unused State Removed**: Removed the `_loading` state variable from `WeatherGlanceWidget` that was declared but never read.
+- **Docker Build Context**: Expanded `.dockerignore` to exclude pixel art source assets, markdown files, and local `config.json` from the Docker build context, reducing image build time and size.
+
+### Reorganized
+- **Repository Structure**: Consistently moved all pet pixel art data into `frontend/scripts/` to keep the production bundle slim.
+- **Centralized Types**: Moved all shared TypeScript interfaces to a single `src/types.ts` file, eliminating the redundant `src/data/apps.ts` import layer.
+- **Clean Root**: Cleaned up the project root by removing legacy config and lock files, ensuring all application data correctly resides in `data/`.
+
+## [0.7.5] - 2026-03-05
+
+### Added
+- Refined Coffee Mug pixel art with symmetrical 2x2 eyes and better arm definition.
+- Fixed emote bubble styling to ensure high visibility in both light and dark modes (no more blank bubbles).
+- Removed obsolete 'Pixel Character' source folder.
+
+## [0.7.4] - 2026-03-05
+### Removed
+- **Sprout Characters**: Removed all Sprout Lands character assets (Sprout, Chicken, Cow) and world objects.
+- **Pixel Agents**: Deprecated the Pixel Agent companion characters.
+### Changed
+- **Pet Simplification**: Reverted the Dashboard mascot system to focus exclusively on BMO and Coffee Mug for a cleaner, more focused experience.
+- **Asset Cleanup**: Purged all unused companion character png layers to reduce bundle size.
+
+## [0.7.3] - 2026-03-05
+### Added
+- **Pixel Agent Characters**: Integrated 6 new office-themed character variants as companion pets on the dashboard.
+- **Agent Interaction**: Added unique emote responses for agents ("Hello!", "Ping!", "Agreed!", "Ready!") and a dedicated AI state machine for their directional movement.
+- **Vertical Facing Support**: Enhanced the pet engine to support "Up" and "Down" facing states for complex sprites that utilize the full 4-axis animation set.
+
+### Changed
+- **Refined Scaling**: Adjusted the scale and hitbox positioning of Sprout Lands characters (Chicken, Cow) and world objects for better visual harmony.
+- **Companion AI Balance**: Improved the clustering and wandering behavior when multiple pets are active simultaneously.
+
+## [0.7.2] - 2026-03-05
+### Added
+- **Sprout Lands Character**: Integrated the new "Sprout" pixel character with directional movement and interactive actions.
+- **Improved Sprite Engine**: Added support for 2D grid-based spritesheets in `index.css`.
+
+## [0.7.1] - 2026-03-05
+
+### Changed
+- **Pet Animation Refactor**: Completely replaced the `<svg>` and `<rect>` DOM-heavy mapping loop for the Desktop pets. A new Node.js canvas script now extracts the pet pixel arrays into true `.png` sprite sheets (`public/pets/*.png`), bringing the entire animation process onto the CSS `steps()` thread and removing all React DOM jitter.
+
+## [0.7.0] - 2026-03-04
+
+### Added
+- **Multi-Pet System**: The free-roaming desktop pet feature has been vastly expanded. You can now select between the classic BMO robot, a new Coffee Mug character that sloshes coffee, or spawn both simultaneously from the Settings menu!
+- **Super-Refined Pixel Art Animations**: Reworked the entire animation state machine for the pets. They now utilize a professional 4-frame walk cycle (contact, down, passing, up) with proper alternating leg swings and realistic Y-axis body bobbing for incredibly smooth movement tracking.
+- **Custom Idle Interactions**: The Coffee Mug features its own custom idle states including blowing steam and spilling coffee, rather than recycling BMO's watering and balloon animations.
+- **Dynamic Walk Speed Calculation**: The pet transition engine now calculates `Math.abs(newPos - position) * 0.1` independently, guaranteeing continuous and realistic pacing regardless of how far the pet is traveling across the screen.
+
+## [0.6.0-beta.3] - 2026-03-04
+
+### Added
+- **Visual Edit Mode**: Introduced a new toggle in the top right header to activate Drag and Drop mode globally. You can now effortlessly click and drag to reorganize and sort Application Cards within their categories and shuffle your top row of Glance Widgets.
+- **Interactive Desktop Pet**: Spawns a dedicated robot mascot right inside the Glance Widgets row! Includes a full CSS animation suite that reacts to hover interactions and mouse clicks (with floating hearts!). 
+- **Workspace Enhancements**: Added a very prominent `<- Back to Dashboard` button when rendering iframes to make escaping them substantially more intuitive.
+- **Widget Resizing Engine**: Rebuilt the Glance Widgets Row CSS matrix to natively support Tailwind `col-span` arguments. You can now resize individual widgets (Small, Medium, Large) from the Settings modal.
+- **Weather Widget Migration**: Ripped out the legacy global Weather block and rebuilt it as a modular `WeatherGlanceWidget` that can be generated, positioned, and dropped directly into the widget flow dynamically.
+
+## [0.6.0-beta.2] - 2026-03-04
+
+### Added
+- **Command Palette App Launcher**: Separated the "Search Web" input bar from local app filtering. You can now press `Ctrl+K` (or use the new `⌘K` header button) to summon a beautiful, blurred modal. The Command Palette lets you instantly type and filter your local dashboard apps and hit `Enter` to launch them, completely isolating local navigation from global internet searching.
+- **Settings Live Previews**: Rewrote the Appearance configuration state pipeline to support real-time previewing. Changing layout structs or color hues from the dropdowns now instantly alters the entire dashboard UI beneath the modal *without needing to press Save*. 
+- **Deep Color Saturation**: Vastly increased the "surface area" of the selected Primary Theme Colors. Application Cards hover states, borders, active toggles, and even the giant animated background Orbs now physically inherit and reflect the specific HSL theme color you select in Appearance.
+
+## [0.6.0-beta.1] - 2026-03-04
+
+### Added
+- **Global Theme Engine**: Introducing 7 distinct palette choices (Zinc, Slate, Emerald, Ocean Blue, Rose Pink, Deep Violet, Warm Amber) that dynamically recalculate and overwrite the entire application CSS layer without a reload.
+- **Granular App Card Control**: Decoupled the rendering of applications into variable structural components. You can now independently combine Layouts (Grid, List, Minimal) and Base Sizing variants (Small, Medium, Large) directly from Settings.
+- **New Appearance Settings Tab**: Migrated all style controls into a dedicated dashboard panel for managing layouts and themes in real-time.
+
+### Fixed
+- **Settings Modal Crash**: Patched a critical React Context strict-mode bug introduced in 0.5.0 where clicking the Settings gear caused the dashboard to render a black screen due to malformed Component trees.
+
+## [0.5.0-beta.1] - 2026-03-04
+
+### Added
+- **Configurable "Glance" Widgets Row**: A sleek new horizontal-scrolling widgets area directly on the dashboard supporting RSS feeds (via proxy), dynamic Clock cards, and Server System Stats (CPU/RAM/Disk via radial gauges).
+- **Expanded Application Integrations**: Added support for Pi-hole, Proxmox Virtual Environment (PVE), and qBittorrent live data tracking directly on app cards.
+- **Advanced Network Latency Tracker**: App cards now ping backend services locally and display microsecond latency (e.g. `Online (14ms)`) to verify real-time responsiveness.
+- **Workspace IFrame Viewer**: Added global and per-app settings to instantly open web interfaces inside a floating dashboard overlay rather than navigating away to a new tab.
+
+## [0.4.0-beta.1] - 2026-03-04
+
+### Added
+- **Universal Search & Shortcuts**: The top search bar now routes outward queries to configurable search engines (Google, DuckDuckGo) and supports `!bang` shortcuts (e.g. `!g search`).
+- **Complete API Settings Overhaul**: Completely reworked how API Keys are handled in Settings.
+- **Dynamic API Inputs**: The settings menu now intelligently detects what supported apps you have and only displays their API key input fields.
+- **Test Connections**: Added visual checkmark buttons to live-ping backend API keys inside the Settings Modal.
+- **Widget Toggles**: Added granular checkboxes per app so users can pick exactly which statistics are shown on the dashboard (e.g., Queue vs Wanted).
+
+## [0.3.0-beta.1] - 2026-03-04
+
+### Added
+- **Bulk Import Wizard**: New UI inside the Settings Modal allowing rapid import of multiple apps simultaneously.
+- **Docker Auto-Discovery**: Added functionality to seamlessly scan the local Docker Socket and return running containers for one-click dashboard integration.
+- **JSON App Import**: Added a manual AI data-paste feature allowing Unraid XML parsing directly via Gemini JSON exports.
+
+## [0.2.0-beta.1] - 2026-03-03
+
+### Added
+- **Visual Changelog App**: Interactive version number badge that opens a styled markdown modal with the project's entire history.
+- **Weather Integration**: Free robust Open-Meteo local weather widget module.
+- **Dynamic Application Layouts**: Three distinct interactive styling layers applied onto app cards: Glassmorphism, Solid Minimal, and Outline.
+
+### Changed
+- Replaced project name from BrayServer to BrayDashy. 
+- Restructured Node.js file mount location to `/app/data/` for easier unraid persistence.
+- Moved unraid proxy port default from `3000` to `3050`.
+
+## [0.1.0-alpha.1] - 2026-03-03
+
+### Added
+- **React Frontend Architecture**: Completely rebuilt the static HTML/CSS vanilla dashboard using React, Vite, Tailwind CSS, and shadcn/ui.
+- **Dynamic Config Engine**: A completely dynamic node backend now interacts with `config.json` to store Categories, App Links, API keys, and System Settings. 
+- **Settings Dashboard Modal**: Added a beautiful glassmorphism-style dashboard for configuring the server in real-time, removing the requirement to manually edit JSON or environment variables.
+- **API Key Manager**: Persistently store Sonarr, Radarr, Tautulli, and other API keys directly in the UI instead of managing Docker environment variables.
+- **Server Stats Live Metrics**: CPU, RAM, and Disk trackers are now securely fetched and rendered live in the top right.
+- **Header Layout Engine**: Introducing 4 custom UI structures for the Dashboard top-bar:
+  - Classic (Default)
+  - Minimalist (Centered Hero)
+  - Split View (Left/Right Grid)
+  - Dynamic Sidebar
+- **Customizable Identity**: Added Settings for users to rename "BrayServer" and provide custom Lucide React Server Icons. 
+- **Funny Subtitles**: Added rotating, tech-humor subtitles beneath the main Server name.
+
+### Changed
+- **Icons CDN**: Replaced dashy's legacy icon CDN with the more stable walkxcode dashboard-icons CDN.
+- **Version Number**: Added application version tracking integrated transparently through Vite's environment variables. 
+- **Dockerization Strategy**: Refactored the Dockerfile into a multi-stage optimized build isolating Node production boundaries.
+
+### Fixed
+- Fixed unreadable Header text gradients.
+- Fixed a bug where settings modal would unmount itself every second due to inline React component lifecycle polling.
+- Handled fallback gracefully when custom icon URLs 404.
