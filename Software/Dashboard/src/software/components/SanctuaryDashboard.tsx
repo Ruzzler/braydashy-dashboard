@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { applyLatestRelease } from '../lib/update';
 import * as Icons from 'lucide-react';
 import { formatIconName } from '../lib/utils';
 import { AppItem, HaEntityData, SanctuaryTheme } from '../types';
@@ -432,33 +431,12 @@ export function SanctuaryDashboard({
     const [loadingRecipeDetails, setLoadingRecipeDetails] = useState(false);
     const [isSavingDinner, setIsSavingDinner] = useState(false);
     const [dinnerModalTab, setDinnerModalTab] = useState<'recipes' | 'custom'>('recipes');
-    const [versionInfo, setVersionInfo] = useState<{ updateAvailable?: boolean; latestVersion?: string; currentVersion?: string } | null>(null);
-    const [applyingUpdate, setApplyingUpdate] = useState(false);
-
     useEffect(() => {
         const timer = setInterval(() => setNow(new Date()), 30000);
-        const checkVer = async () => {
-            try {
-                const res = await fetch('/api/version/check');
-                if (res.ok) setVersionInfo(await res.json());
-            } catch (_) { }
-        };
-        checkVer();
-        const verTimer = setInterval(checkVer, 15000);
         return () => {
             clearInterval(timer);
-            clearInterval(verTimer);
         };
     }, []);
-
-    const handleApplyUpdate = async () => {
-        setApplyingUpdate(true);
-        try {
-            await applyLatestRelease();
-        } catch (_) {
-            setApplyingUpdate(false);
-        }
-    };
 
     // Fetch Grocery List (todo.mealie_groceries)
     const fetchGroceries = useCallback(async () => {
@@ -1045,18 +1023,7 @@ export function SanctuaryDashboard({
 
                     {/* Right: Unified 36px (h-9) Control Bar */}
                     <div className="flex items-center gap-2 flex-shrink-0">
-                        {versionInfo?.updateAvailable && (
-                            <button
-                                type="button"
-                                onClick={handleApplyUpdate}
-                                disabled={applyingUpdate}
-                                title="Install the newest BrayDashy release"
-                                className="h-9 px-3.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-sm transition-all animate-pulse"
-                            >
-                                <Icons.ArrowDownCircle className="w-3.5 h-3.5" />
-                                <span>{applyingUpdate ? 'Updating...' : `Update Ready (${versionInfo.latestVersion || 'New'})`}</span>
-                            </button>
-                        )}
+                        {/* No update button here: Bri's page never asks her to update (Ryan 2026-11-07). Settings > Updates. */}
                         {/* Unified Profile Selector + Pin Capsule */}
                         <div className={`h-9 inline-flex items-center rounded-full border shadow-sm overflow-hidden ${
                             theme === 'velvet'
