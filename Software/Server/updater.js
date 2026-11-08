@@ -124,7 +124,8 @@ async function checkForUpdate(serverDir) {
         if (latest) {
             out.latestVersion = latest.version;
             out.latestTag = latest.tag;
-            out.releaseNotes = latest.notes.split('\n').find(l => l.trim()) || latest.name;
+            const firstLine = latest.notes.split(/\r?\n/).map(l => l.trim()).find(l => l && !l.startsWith('#'));
+            out.releaseNotes = (firstLine || latest.name).replace(/^[-*]\s*/, '').replace(/\*\*/g, '');
             out.url = latest.url;
             const cmp = compareSemver(latest.version, cur.version);
             out.updateAvailable = Boolean(out.canUpdate && latest.bundleUrl && cmp !== null && cmp > 0);
@@ -204,7 +205,8 @@ async function applyLatest(serverDir) {
         const staging = path.join(incoming, `${latest.tag}.partial`);
         fs.rmSync(staging, { recursive: true, force: true });
         fs.mkdirSync(staging, { recursive: true });
-        await run('tar', ['-xzf', tarFile, '-C', staging]);
+        // Relative names from inside .incoming (GNU tar on Windows reads "C:" as a host).
+        await run('tar', ['-xzf', path.basename(tarFile), '-C', path.basename(staging)], { cwd: incoming });
 
         const v = readJson(path.join(staging, 'backend', 'version.json'));
         if (!fs.existsSync(path.join(staging, 'backend', 'server.js')) ||
