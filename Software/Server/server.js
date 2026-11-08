@@ -303,17 +303,39 @@ app.post('/api/profiles', (req, res) => {
     }
 });
 
-// Get Config (supports ?profile=<slug>)
+// Get / save config (supports ?profile=<slug>). Since 2026-11-08 stored secrets never leave
+// the server: GET shows SECRET_MASK in their place, and POST keeps the stored value whenever
+// a field still holds SECRET_MASK (so saving Settings or importing a backup never wipes them).
+const SECRET_MASK = '********';
+const isSecretKey = k => /(TOKEN|KEY|PASSWORD|SECRET)/i.test(k) && !/_URL$/i.test(k);
+
+function maskSecrets(config) {
+    const out = { ...config, apiKeys: { ...(config.apiKeys || {}) } };
+    for (const [k, v] of Object.entries(out.apiKeys)) {
+        if (isSecretKey(k) && v) out.apiKeys[k] = SECRET_MASK;
+    }
+    return out;
+}
+
+function restoreSecrets(incoming, stored) {
+    const apiKeys = { ...((incoming && incoming.apiKeys) || {}) };
+    for (const [k, v] of Object.entries(apiKeys)) {
+        if (v === SECRET_MASK) {
+            if (stored.apiKeys && stored.apiKeys[k]) apiKeys[k] = stored.apiKeys[k];
+            else delete apiKeys[k];
+        }
+    }
+    return { ...incoming, apiKeys };
+}
+
 app.get('/api/config', (req, res) => {
-    const profileSlug = req.query.profile;
-    const config = readConfig(profileSlug);
-    res.json(config);
+    res.json(maskSecrets(readConfig(req.query.profile)));
 });
 
-// Save Config (supports ?profile=<slug>)
 app.post('/api/config', (req, res) => {
     const profileSlug = req.query.profile;
-    const success = writeConfig(req.body, profileSlug);
+    const data = restoreSecrets(req.body || {}, readConfig(profileSlug));
+    const success = writeConfig(data, profileSlug);
     if (success) {
         res.json({ success: true });
     } else {
@@ -795,7 +817,6 @@ let localDinnerStore = {
     weekPlan: []
 };
 
-const KNOWN_MEALIE_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJsb25nX3Rva2VuIjp0cnVlLCJpZCI6IjA2MmI5MGE3LTQzZmEtNDFjMy04M2JkLWIwNDA2Y2M3NTQ2YyIsIm5hbWUiOiJhZ2VudC10ZXN0aW5nIiwiaW50ZWdyYXRpb25faWQiOiJnZW5lcmljIiwiaXNzIjoibWVhbGllIiwiaWF0IjoxNzkyNjg3NTM4LCJleHAiOjE5NTAzNjc1Mzh9.NNkrzYpaLt3p1wj7myqC5eG76bNhl_5Nb-WvmaEKhZY';
 
 function getMealieCredentials(profileSlug) {
     const config = readConfig(profileSlug);
@@ -814,7 +835,7 @@ function getMealieCredentials(profileSlug) {
         config.apiKeys?.MEALIE_API_TOKEN ||
         process.env.MEALIE_API_TOKEN ||
         process.env.MEALIE_API_KEY ||
-        KNOWN_MEALIE_TOKEN
+        ''
     ).trim();
 
     return { url, token };

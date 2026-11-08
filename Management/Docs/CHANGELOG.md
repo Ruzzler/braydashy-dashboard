@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.6] - 2026-11-08
+
+### Security
+- **No built-in Mealie token**: the hard-coded fallback token from 11-04 is gone (it was rotated in Mealie); the key comes only from Settings > API Integrations or `MEALIE_API_KEY`.
+- **Keys stay on the server**: `/api/config` shows `********` for stored tokens and keys; saving Settings (or importing a backup) with `********` keeps the stored value.
+
 ## [0.9.5] - 2026-11-07
 
 ### Changed
