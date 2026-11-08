@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import * as Icons from 'lucide-react';
 import { formatIconName } from '../lib/utils';
 import { AppItem } from '../types';
+import { ConfigContext } from '../context/ConfigContext';
 
 interface AppCardProps {
     app: AppItem;
@@ -13,6 +14,8 @@ interface AppCardProps {
 }
 
 export function AppCard({ app, style = 'glass', layout = 'grid', size = 'medium', onOpenWorkspace, isEditMode }: AppCardProps) {
+    // Status is looked up in the profile that owns the app (Bri's tiles live only in bri.json).
+    const currentProfile = useContext(ConfigContext)?.currentProfile;
     const [isOnline, setIsOnline] = useState<boolean | null>(null);
     const [latency, setLatency] = useState<number | null>(null);
     const [stats, setStats] = useState<{ id: string; label: string; value: string; color: string }[] | null>(null);
@@ -20,7 +23,8 @@ export function AppCard({ app, style = 'glass', layout = 'grid', size = 'medium'
     useEffect(() => {
         const checkStatus = async () => {
             try {
-                const res = await fetch(`/api/${app.id}/status`);
+                const q = currentProfile && currentProfile !== 'default' ? `?profile=${encodeURIComponent(currentProfile)}` : '';
+                const res = await fetch(`/api/${app.id}/status${q}`);
                 if (res.ok) {
                     const data = await res.json();
                     setIsOnline(data.online);
@@ -36,7 +40,7 @@ export function AppCard({ app, style = 'glass', layout = 'grid', size = 'medium'
         checkStatus();
         const interval = setInterval(checkStatus, 30000);
         return () => clearInterval(interval);
-    }, [app.id]);
+    }, [app.id, currentProfile]);
 
     const isMinimal = layout === 'minimal';
     const isList = layout === 'list';

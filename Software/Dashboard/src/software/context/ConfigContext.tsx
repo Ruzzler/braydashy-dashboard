@@ -20,7 +20,7 @@ interface ConfigContextType {
     refreshProfiles: () => Promise<void>;
 }
 
-const ConfigContext = createContext<ConfigContextType | undefined>(undefined);
+export const ConfigContext = createContext<ConfigContextType | undefined>(undefined);
 
 function getInitialProfileId(): string {
     if (typeof window === 'undefined') return 'default';
