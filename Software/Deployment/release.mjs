@@ -109,6 +109,13 @@ console.log(`release: published ${FORGEJO}/${REPO}/releases/tag/${tag}`);
 
 // 6. Optional: install on the live app now
 if (args.has('--apply')) {
+    // Forgejo can answer releases/latest with the previous release for a moment after
+    // publishing (seen 2026-11-08); wait until it names this tag.
+    for (let i = 0; i < 15; i++) {
+        const latest = await fetch(`${FORGEJO}/api/v1/repos/${REPO}/releases/latest`).then(r => r.json()).catch(() => ({}));
+        if (latest.tag_name === tag) break;
+        await new Promise(r => setTimeout(r, 2000));
+    }
     const res = await fetch(`${LIVE}/api/update/apply`, { method: 'POST' });
     console.log(`release: live apply -> ${res.status} ${await res.text()}`);
 }
