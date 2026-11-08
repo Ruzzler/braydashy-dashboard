@@ -43,6 +43,12 @@ tar -czf "$BK/appdata-braydashy.tgz" -C /mnt/user/appdata braydashy
 IMG=$(docker inspect -f '{{.Image}}' "$NAME")
 docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$NAME" | grep -v '^$' > "$BK/env.list"
 echo "$IMG" > "$BK/image-id.txt"
+# Yes/no only (never the value): does appdata carry its own Mealie key? (the code's built-in
+# fallback token is being removed, 2026-11-08)
+for f in /mnt/user/appdata/braydashy/config.json /mnt/user/appdata/braydashy/profiles/*.json; do
+  [ -f "$f" ] || continue
+  if grep -q '"MEALIE_API_KEY": *"[^"]' "$f"; then echo "   Mealie key in $(basename "$f"): yes"; else echo "   Mealie key in $(basename "$f"): NO"; fi
+done
 docker exec "$NAME" sh -c 'command -v tar >/dev/null' || { echo "image has no tar; the in-app updater needs it"; exit 1; }
 
 say "2/5 release $TAG"
